@@ -10,7 +10,7 @@
 
 Chess engine written in C# with the .NET 5.0. The engine is still in development.
 
-### Usage
+## Usage
 
 Chess is not a complete chess program and requires a UCI-compatible graphical user interface (GUI) (e.g. XBoard with PolyGlot, Scid, Cute Chess, eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz) in order to be used comfortably.
 
