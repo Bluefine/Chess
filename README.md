@@ -22,4 +22,6 @@ Chess engine written in C# with the .NET 5.0. The engine is still in development
 
 * Move ordering
 * Multithreading
+* Faster move generation
+* Killer moves
 * And More...
