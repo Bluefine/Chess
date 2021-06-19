@@ -33,4 +33,4 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 ## Changelog
 
 #### 1.0.0.0
- *First release
+* First release
