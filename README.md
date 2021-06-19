@@ -32,5 +32,7 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 
 ## Changelog
 
-#### 1.0.0.0
+#### 1.1.0.0 (19.06.2021)
+
+#### 1.0.0.0 (15.06.2021)
 * First release
