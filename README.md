@@ -29,3 +29,8 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 * Faster move generation
 * Killer moves
 * And More...
+
+## Changelog
+
+#### 1.0.0.0
+ *First release
