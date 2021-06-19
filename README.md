@@ -33,6 +33,13 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 ## Changelog
 
 #### 1.1.0.0 (19.06.2021)
+* Removed name from piece model, no need to use whole string one char is enough and will be faster
+* Redesigned piece update function
+* Redesigned whole "safemove" function which was used to check if move is legal, now it's named "ValidMove"
+* Added "CastleQueenSide" for Move model to detect castle side
+* Improved search algorithm to don't perform unnecessary calculations
+* And others smaller changes
+* All of the improvments will result in huge performance impact from around ~2200 nps to ~25k nps
 
 #### 1.0.0.0 (15.06.2021)
 * First release
