@@ -19,11 +19,12 @@ namespace Chess.Engine
             AlphaBeta.Stopwatch = new Stopwatch();
             AlphaBeta.Stopwatch.Start();
 
-            for (int i = 1; i < 10; i++)
+            for (int i = 1; i < 99; i++)
             {
                 AlphaBeta.DepthLimit = i;
                 AlphaBeta.Search(board, color, 0, -10000, 10000, color == "White");
-                Console.WriteLine($"info depth {i} nodes {AlphaBeta.Nodes}");
+                var nps = (int)(AlphaBeta.Nodes / (((float)AlphaBeta.Stopwatch.ElapsedMilliseconds + 1) / 1000));
+                Console.WriteLine($"info depth {i} nodes {AlphaBeta.Nodes} nps {nps}");
                 if (i >= depth)
                 {
                     break;

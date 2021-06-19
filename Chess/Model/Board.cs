@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Chess.Extensions;
 
 namespace Chess.Model
@@ -15,36 +16,36 @@ namespace Chess.Model
         {
             Pieces = new Piece[8, 8];
             //pawns
-            for (var i = 0; i < 8; i++) Pieces[1, i] = new Piece("Pawn", 'P', 10, "White", new Point(1, i));
+            for (var i = 0; i < 8; i++) Pieces[1, i] = new Piece('P', 10, "White", new Point(1, i));
 
             //pawns
-            for (var i = 0; i < 8; i++) Pieces[6, i] = new Piece("Pawn", 'P', -10, "Black", new Point(6, i));
+            for (var i = 0; i < 8; i++) Pieces[6, i] = new Piece('P', -10, "Black", new Point(6, i));
 
             //rooks
-            Pieces[0, 0] = new Piece("Rook", 'R', 50, "White", new Point(0, 0));
-            Pieces[0, 7] = new Piece("Rook", 'R', 50, "White", new Point(0, 7));
-            Pieces[7, 0] = new Piece("Rook", 'R', -50, "Black", new Point(7, 0));
-            Pieces[7, 7] = new Piece("Rook", 'R', -50, "Black", new Point(7, 7));
+            Pieces[0, 0] = new Piece('R', 50, "White", new Point(0, 0));
+            Pieces[0, 7] = new Piece('R', 50, "White", new Point(0, 7));
+            Pieces[7, 0] = new Piece('R', -50, "Black", new Point(7, 0));
+            Pieces[7, 7] = new Piece('R', -50, "Black", new Point(7, 7));
 
             //knight
-            Pieces[0, 1] = new Piece("Knight", 'N', 30, "White", new Point(0, 1));
-            Pieces[0, 6] = new Piece("Knight", 'N', 30, "White", new Point(0, 6));
-            Pieces[7, 1] = new Piece("Knight", 'N', -30, "Black", new Point(7, 1));
-            Pieces[7, 6] = new Piece("Knight", 'N', -30, "Black", new Point(7, 6));
+            Pieces[0, 1] = new Piece('N', 30, "White", new Point(0, 1));
+            Pieces[0, 6] = new Piece('N', 30, "White", new Point(0, 6));
+            Pieces[7, 1] = new Piece('N', -30, "Black", new Point(7, 1));
+            Pieces[7, 6] = new Piece('N', -30, "Black", new Point(7, 6));
 
             //bishop
-            Pieces[0, 2] = new Piece("Bishop", 'B', 30, "White", new Point(0, 2));
-            Pieces[0, 5] = new Piece("Bishop", 'B', 30, "White", new Point(0, 5));
-            Pieces[7, 2] = new Piece("Bishop", 'B', -30, "Black", new Point(7, 2));
-            Pieces[7, 5] = new Piece("Bishop", 'B', -30, "Black", new Point(7, 5));
+            Pieces[0, 2] = new Piece('B', 30, "White", new Point(0, 2));
+            Pieces[0, 5] = new Piece('B', 30, "White", new Point(0, 5));
+            Pieces[7, 2] = new Piece('B', -30, "Black", new Point(7, 2));
+            Pieces[7, 5] = new Piece('B', -30, "Black", new Point(7, 5));
 
             //queen
-            Pieces[0, 3] = new Piece("Queen", 'Q', 90, "White", new Point(0, 3));
-            Pieces[7, 3] = new Piece("Queen", 'Q', -90, "Black", new Point(7, 3));
+            Pieces[0, 3] = new Piece('Q', 90, "White", new Point(0, 3));
+            Pieces[7, 3] = new Piece('Q', -90, "Black", new Point(7, 3));
 
             //king
-            Pieces[0, 4] = new Piece("King", 'K', 0, "White", new Point(0, 4));
-            Pieces[7, 4] = new Piece("King", 'K', 0, "Black", new Point(7, 4));
+            Pieces[0, 4] = new Piece('K', 0, "White", new Point(0, 4));
+            Pieces[7, 4] = new Piece('K', 0, "Black", new Point(7, 4));
         }
 
         public char[,] GetBoardCharTable()
@@ -96,64 +97,80 @@ namespace Chess.Model
             return null;
         }
 
-        public bool SafeMove(List<Tuple<Piece, Point>> moves)
+        public bool ValidMove(Move move)
         {
-            var king = FindKingLocation(moves.First().Item1.Color);
+            var myPiece = Pieces[move.From.X, move.From.Y];
 
-            if (king == null) return false;
-
-            var color = "White";
-            if (king.Color == "White")
-                color = "Black";
-
-            var old = moves.Select(tuple =>
-                new Tuple<Piece, Point, Piece, Point>(Pieces[tuple.Item1.Position.X, tuple.Item1.Position.Y],
-                    Pieces[tuple.Item1.Position.X, tuple.Item1.Position.Y]?.Position,
-                    Pieces[tuple.Item2.X, tuple.Item2.Y], tuple.Item2)).ToList();
-
-            foreach (var move in moves) MovePiece(move.Item1, move.Item2);
-
-            var changedPieces = new List<Piece>();
-            var notSafe = false;
-            foreach (var p in GetPiecesByColor(color))
+            var entityOnDestination = Pieces[move.To.X, move.To.Y];
+            Piece entityOnDestinationClone = null;
+            if (entityOnDestination != null)
             {
-                if (p.NameShort == 'P')
-                    if (p.Position.Distance(king.Position) > 1.5)
-                        continue;
+                entityOnDestinationClone = new Piece(entityOnDestination); //make new instance because deep copy will override ours
+            }
+            else
+            {
+                //null position so we dont need to bring back the piece
+            }
 
-                if (p.NameShort == 'N')
-                    if (p.Position.Distance(king.Position) > 3)
-                        continue;
+            if (move.Castle)
+            {
+                MovePieceCastle(myPiece, move.To, move.CastleQueenSide);
+            }
+            else
+            {
+                MovePiece(myPiece, move.To);
+            }
+            
 
-                if (p.NameShort == 'K')
-                    if (p.Position.Distance(king.Position) > 1.5)
-                        continue;
+            var myKing = FindKingLocation(myPiece.Color);
 
-                p.Update(this, true);
-                changedPieces.Add(p);
-                if (p.CheckPositions.Any(x => x == king.Position))
+            var check = false;
+            //now we need to check if that move wont result in check on our king
+
+            //iterate over enemy pieces w/o pawns and knight and king cuz they got static attack position so won't cause check
+            foreach (var p in GetPiecesByColor(ReverseColor(myPiece.Color)))
+            {
+                var pieceClone = new Piece(p); //new instance too prevent changes on our original piece
+
+                //if (pieceClone.HitMoves.Any(x => x == move.From)) //if the piece wasn't attacking the position on which piece was then don't check it
+                //{
+                    
+                //}
+
+                pieceClone.UpdateHitMoves(this); //update legal moves after we made one with our piece
+                if (pieceClone.HitMoves.Any(x => x == myKing.Position))
                 {
-                    notSafe = true;
+                    check = true;
                     break;
                 }
             }
 
-            foreach (var tuple in old)
+            //back piece
+            if (move.Castle)
             {
-                MovePiece(tuple.Item1, tuple.Item2);
-                Pieces[tuple.Item4.X, tuple.Item4.Y] = tuple.Item3;
+                MovePieceCastle(myPiece, move.From, move.CastleQueenSide);
+            }
+            else
+            {
+                MovePiece(myPiece, move.From);
             }
 
-            foreach (var changedPiece in changedPieces) changedPiece.Update(this, true);
+            if (entityOnDestinationClone != null)
+            {
+                Pieces[move.To.X, move.To.Y] = entityOnDestinationClone; //bring back old piece if there was any
+            }
 
-            if (!notSafe) return true;
+            if (check)
+            {
+                return false;
+            }
 
-            return false;
+            return true;
         }
 
-        public bool SafeMove(Tuple<Piece, Point> move)
+        public string ReverseColor(string color)
         {
-            return SafeMove(new List<Tuple<Piece, Point>> {move});
+            return color == "White" ? "Black" : "White";
         }
 
         private List<Point> GetAllCheckPositions(string color)
@@ -165,8 +182,8 @@ namespace Chess.Model
             {
                 var piece = Pieces[i, j];
                 if (piece != null)
-                    if (piece.Color == color)
-                        check.AddRange(piece.CheckPositions);
+                    if (piece.Color == color && piece.HitMoves != null)
+                        check.AddRange(piece.HitMoves);
             }
 
             return check;
@@ -184,7 +201,7 @@ namespace Chess.Model
                     var value = 90;
                     if (piece.Color == "Black") value = -90;
 
-                    Promotion(piece, "Queen", 'Q', value); //undo promo? 
+                    Promotion(piece, 'Q', value); //undo promo? 
                 }
             }
 
@@ -211,7 +228,7 @@ namespace Chess.Model
                 MovePiece(pieceNew, move.To, final);
         }
 
-        private void MovePieceCastle(Piece piece, Point to, bool final = false)
+        private void MovePieceCastle(Piece piece, Point to, bool queenSide, bool final = false)
         {
             Piece rook = null;
             Point rookTo = null;
@@ -225,9 +242,35 @@ namespace Chess.Model
                 rook = GetPiece(new Point(to.X, 0));
                 rookTo = new Point(to.X, to.Y + 1);
             }
+            else if (to.Y == 4) //back
+            {
+                if (queenSide)
+                {
+                    rook = GetPiece(new Point(piece.Position.X, 0));
+                    rookTo = new Point(to.X, 3);
+                    if (rook == null)
+                    {
+                        //back move
+                        rook = GetPiece(new Point(piece.Position.X, 3));
+                        rookTo = new Point(to.X, 0);
+                    }
+                }
+                else
+                {
+                    rook = GetPiece(new Point(piece.Position.X, 7));
+                    rookTo = new Point(to.X, 5);
+                    if (rook == null)
+                    {
+                        //back move
+                        rook = GetPiece(new Point(piece.Position.X, 5));
+                        rookTo = new Point(to.X, 7);
+                    }
+                }
+            }
+
 
             MovePiece(piece, to, final);
-            MovePiece(rook, rookTo, true);
+            MovePiece(rook, rookTo, final);
         }
 
         public bool IsPromotion(Piece piece, Point to)
@@ -248,9 +291,8 @@ namespace Chess.Model
             return false;
         }
 
-        public void Promotion(Piece piece, string name, char nameShort, int value)
+        public void Promotion(Piece piece, char nameShort, int value)
         {
-            piece.Name = name;
             piece.NameShort = nameShort;
             piece.Value = value;
         }
@@ -263,7 +305,21 @@ namespace Chess.Model
                 var piece = Pieces[i, j];
                 if (piece != null)
                     if (piece.Color == color)
-                        piece.Update(this);
+                        piece.FindLegalMoves(this);
+            }
+        }
+
+        public void UpdateHit(string color)
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                for (var j = 0; j < 8; j++)
+                {
+                    var piece = Pieces[i, j];
+                    if (piece != null)
+                        if (piece.Color == color)
+                            piece.UpdateHitMoves(this);
+                }
             }
         }
 
@@ -283,7 +339,13 @@ namespace Chess.Model
         public bool IsCheckMate(string color)
         {
             var moves = new List<Move>();
-            foreach (var piece in GetPiecesByColor(color)) moves.AddRange(piece.PossibleMoves);
+            foreach (var piece in GetPiecesByColor(color))
+            {
+                if (piece.LegalMoves != null)
+                {
+                    moves.AddRange(piece.LegalMoves);
+                }
+            }
 
             if (moves.Any()) return false;
 

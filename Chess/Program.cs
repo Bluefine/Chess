@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using Chess.Engine;
 using Chess.Model;
@@ -13,7 +14,7 @@ namespace Chess
         private static void Main(string[] args)
         {
             //ResetBoard();
-
+            //Console.WriteLine(GetBestMove(3, 3333333));
             //var piece = Board.GetPiece(new Point(1, 4));
             //var move = piece.PossibleMoves.FirstOrDefault(x => x.To == new Point(3, 4));
 
@@ -58,12 +59,13 @@ namespace Chess
 
                         if (piece != null && piece.Color == Color)
                         {
-                            var dest = piece.PossibleMoves.FirstOrDefault(x => x.To == pos);
+                            var dest = piece.LegalMoves.FirstOrDefault(x => x.To == pos);
                             if (dest != null)
                             {
                                 Board.MovePiece(dest, true);
                                 Color = Color == "White" ? "Black" : "White";
                                 Board.Update(Color);
+                                //DebugBoard(true, Board);
                             }
                         }
                     }
@@ -71,7 +73,7 @@ namespace Chess
             else if (msg.Contains("go"))
             {
                 var depth = 10;
-                var time = -1;
+                var time = 99999999;
                 var info = msg.Split(" ");
                 if (info.Length > 1)
                 {
@@ -80,7 +82,7 @@ namespace Chess
                         var whiteTime = info[2];
                         var blackTime = info[4]; //add later the info about time inc
 
-                        if (Color=="White")
+                        if (Color == "White")
                         {
                             time = (int)(Convert.ToInt32(whiteTime) * 0.1);
                         }
@@ -98,12 +100,68 @@ namespace Chess
             }
         }
 
+        public static void DebugBoard(bool flip, Board board)
+        {
+            var gameBoardClone = (Piece[,])board.Pieces.Clone();
+            if (flip)
+            {
+                gameBoardClone = FlipArray(gameBoardClone);
+            }
+            Debug.WriteLine("");
+            //Console.Clear();
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (gameBoardClone[i, j] != null)
+                    {
+                        Debug.Write(gameBoardClone[i, j].NameShort + " ");
+                    }
+                    else
+                    {
+                        Debug.Write("X ");
+                    }
+                }
+                Debug.WriteLine("");
+            }
+        }
+
+        private static Piece[,] FlipArray(Piece[,] arrayToFlip)
+        {
+            var rows = arrayToFlip.GetLength(0);
+            var columns = arrayToFlip.GetLength(1);
+            var flippedArray = new Piece[rows, columns];
+
+            for (int i = 0; i < rows; i++)
+            {
+                for (int j = 0; j < columns; j++)
+                {
+                    flippedArray[i, j] = arrayToFlip[(rows - 1) - i, j];
+                }
+            }
+            return flippedArray;
+        }
+
         public static void ResetBoard()
         {
             Board = new Board();
             Board.New();
             Color = "White";
+            var st = new Stopwatch();
+            st.Start();
+            Board.UpdateHit((Color));
+            Board.UpdateHit((ReverseColor(Color)));
             Board.Update(Color);
+            Board.Update(ReverseColor(Color));
+
+
+            st.Stop();
+            Debug.WriteLine(st.ElapsedMilliseconds);
+        }
+
+        public static string ReverseColor(string color)
+        {
+            return color == "White" ? "Black" : "White";
         }
 
         public static string GetBestMove(int depth, int time)

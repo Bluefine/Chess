@@ -11,6 +11,7 @@ namespace Chess.Engine
         public Move BestMove;
         public int DepthLimit;
         public int Nodes;
+        public int HashTableHits;
         public Stopwatch Stopwatch;
         public Dictionary<ulong, Transposition> Transpositions = new();
         public int TimeLimit;
@@ -26,6 +27,7 @@ namespace Chess.Engine
             if (entity != null)
                 if (entity.Depth >= depth)
                 {
+                    HashTableHits++;
                     if (entity.Flag == Transposition.Flags.Exact)
                     {
                         return entity.Value;
@@ -61,7 +63,10 @@ namespace Chess.Engine
             var moves = new List<Move>();
             var pieces = board.GetPiecesByColor(color);
             foreach (var piece in pieces)
-                foreach (var move in piece.PossibleMoves)
+            {
+                piece.UpdateHitMoves(board);
+                piece.FindLegalMoves(board);
+                foreach (var move in piece.LegalMoves)
                 {
                     Nodes++;
                     var bN = new Board();
@@ -70,7 +75,7 @@ namespace Chess.Engine
 
                     bN.MovePieceNewInstance(piece, move, true);
 
-                    bN.Update(ChangeColor(color));
+                    //bN.Update(ChangeColor(color));
                     bN.ZobristKey = ZobristHashing.Hash(bN.GetBoardCharTable());
 
                     moves.Add(move);
@@ -89,6 +94,7 @@ namespace Chess.Engine
                         if (beta <= alpha) return bestMove;
                     }
                 }
+            }
 
             if (!Transpositions.ContainsKey(board.ZobristKey))
             {
@@ -154,6 +160,8 @@ namespace Chess.Engine
 
             return 0;
         }
+
+
 
         private Transposition Lookup(ulong zobristKey)
         {
