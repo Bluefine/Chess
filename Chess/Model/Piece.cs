@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 
 namespace Chess.Model
@@ -46,108 +45,8 @@ namespace Chess.Model
             switch (NameShort)
             {
                 case 'P':
-                    {
-                        HitMoves = GetPawnHitPositions();
-                        break;
-                    }
-
-                case 'N':
-                    {
-                        toBeCheck = GetKnightAllMoves().Where(p => !p.To.IsPointOutsideBoard()).ToList();
-                        break;
-                    }
-                case 'R':
-                    {
-                        toBeCheck = GetMovesInLine(board);
-                        break;
-                    }
-                case 'B':
-                    {
-                        toBeCheck = GetMovesInDiagonal(board);
-                        break;
-                    }
-                case 'Q':
-                    {
-                        toBeCheck.AddRange(GetMovesInLine(board)); //combine to make it faster
-                        toBeCheck.AddRange(GetMovesInDiagonal(board)); //combine to make it faster
-                        break;
-                    }
-                case 'K':
-                    {
-                        toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
-                        break;
-                    }
-            }
-
-            foreach (var move in toBeCheck)
-            {
-                HitMoves.Add(new Point(move.To.X, move.To.Y));
-            }
-        }
-
-        public void FindLegalMoves(Board board)
-        {
-            LegalMoves = new List<Move>();
-            var toBeCheck = new List<Move>();
-            switch (NameShort)
-            {
-                case 'P':
                 {
-                    var moves = GetPawnHitPositions();
-                    var temp = -1;
-                    if (Color == "White")
-                        temp = 1;
-
-                    var temp2 = -2;
-                    if (Color == "White")
-                        temp2 = 2;
-
-                    var up1 = new Point(Position.X + temp, Position.Y);
-
-                    if (board.Pieces[up1.X, up1.Y] == null) //position of course need to be empty for pawn
-                    {
-                        var m = new Move() {Castle = false, From = Position, Hit = false, To = up1};
-
-                        if (board.ValidMove(m))
-                        {
-                            LegalMoves.Add(m);
-                        }
-
-                        if (!WasMoved) //2 places can only be done if the piece wasn't moved
-                        {
-                            var up2 = new Point(Position.X + temp2, Position.Y);
-
-                            if (board.Pieces[up2.X, up2.Y] == null) //position of course need to be empty for pawn
-                            {
-                                var m2 = new Move() { Castle = false, From = Position, Hit = false, To = up2 };
-                                if (board.ValidMove(m2))
-                                {
-                                    LegalMoves.Add(m2);
-                                }
-                            }
-                        }
-                    }
-
-                    //todo add el-passant
-
-                    foreach (var point in moves)
-                    {
-                        var p = board.Pieces[point.X, point.Y];
-                        if (p != null) //we need piece to perform diagonal move
-                        {
-                            if (p.Color != Color)
-                            {
-                                if (p.NameShort != 'K')
-                                {
-                                    var move = new Move() {Castle = false, From = Position, Hit = true, To = point};
-                                    if (board.ValidMove(move))
-                                    {
-                                        LegalMoves.Add(move);
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    HitMoves = GetPawnHitPositions();
                     break;
                 }
 
@@ -175,33 +74,112 @@ namespace Chess.Model
                 case 'K':
                 {
                     toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
-                    toBeCheck.AddRange(GetKingCastling(board));
                     break;
                 }
             }
 
-            if (NameShort != 'P') 
+            foreach (var move in toBeCheck) HitMoves.Add(new Point(move.To.X, move.To.Y));
+        }
+
+        public void FindLegalMoves(Board board)
+        {
+            LegalMoves = new List<Move>();
+            var toBeCheck = new List<Move>();
+            switch (NameShort)
             {
+                case 'P':
+                {
+                    var moves = GetPawnHitPositions();
+                    var temp = -1;
+                    if (Color == "White")
+                        temp = 1;
+
+                    var temp2 = -2;
+                    if (Color == "White")
+                        temp2 = 2;
+
+                    var up1 = new Point(Position.X + temp, Position.Y);
+
+                    if (board.Pieces[up1.X, up1.Y] == null) //position of course need to be empty for pawn
+                    {
+                        var m = new Move {Castle = false, From = Position, Hit = false, To = up1};
+
+                        if (board.ValidMove(m)) LegalMoves.Add(m);
+
+                        if (!WasMoved) //2 places can only be done if the piece wasn't moved
+                        {
+                            var up2 = new Point(Position.X + temp2, Position.Y);
+
+                            if (board.Pieces[up2.X, up2.Y] == null) //position of course need to be empty for pawn
+                            {
+                                var m2 = new Move {Castle = false, From = Position, Hit = false, To = up2};
+                                if (board.ValidMove(m2)) LegalMoves.Add(m2);
+                            }
+                        }
+                    }
+
+                    //todo add el-passant
+
+                    foreach (var point in moves)
+                    {
+                        var p = board.Pieces[point.X, point.Y];
+                        if (p != null) //we need piece to perform diagonal move
+                        {
+                            if (p.Color != Color)
+                                if (p.NameShort != 'K')
+                                {
+                                    var move = new Move {Castle = false, From = Position, Hit = true, To = point};
+                                    if (board.ValidMove(move)) LegalMoves.Add(move);
+                                }
+                        }
+                    }
+
+                    break;
+                }
+
+                case 'N':
+                {
+                    toBeCheck = GetKnightAllMoves().Where(p => !p.To.IsPointOutsideBoard()).ToList();
+                    break;
+                }
+                case 'R':
+                {
+                    toBeCheck = GetMovesInLine(board);
+                    break;
+                }
+                case 'B':
+                {
+                    toBeCheck = GetMovesInDiagonal(board);
+                    break;
+                }
+                case 'Q':
+                {
+                    toBeCheck.AddRange(GetMovesInLine(board)); //combine to make it faster
+                    toBeCheck.AddRange(GetMovesInDiagonal(board)); //combine to make it faster
+                    break;
+                }
+                case 'K':
+                {
+                    toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
+                    if (!board.IsCheck(Color)) //can't castle under check
+                        toBeCheck.AddRange(GetKingCastling(board));
+
+                    break;
+                }
+            }
+
+            if (NameShort != 'P')
                 foreach (var move in toBeCheck)
                 {
                     //HitMoves.Add(new Point(move.To.X, move.To.Y));
 
                     var p = board.Pieces[move.To.X, move.To.Y];
                     if (p != null) //hit
-                    {
                         if (p.Color == Color || p.NameShort == 'K')
-                        {
                             continue;
-                        }
-                    }
 
-                    if (board.ValidMove(move))
-                    {
-                        LegalMoves.Add(move);
-                    }
+                    if (board.ValidMove(move)) LegalMoves.Add(move);
                 }
-            }
-
         }
 
         public List<Move> GetMovesInLine(Board board)
@@ -328,9 +306,7 @@ namespace Chess.Model
 
             if (f == null && g == null && h != null)
                 if (!WasMoved && !h.WasMoved)
-                {
-                    moves.Add(new Move() {Castle = true, From = Position, To = new Point(side, 6) });
-                }
+                    moves.Add(new Move {Castle = true, From = Position, To = new Point(side, 6)});
 
             //queenside
             var d = board.Pieces[side, 3];
@@ -340,9 +316,8 @@ namespace Chess.Model
 
             if (d == null && c == null && b == null && a != null)
                 if (!WasMoved && !a.WasMoved)
-                {
-                    moves.Add(new Move() { Castle = true, From = Position, To = new Point(side, 2), CastleQueenSide = true});
-                }
+                    moves.Add(new Move
+                        {Castle = true, From = Position, To = new Point(side, 2), CastleQueenSide = true});
 
             return moves;
         }
@@ -352,28 +327,28 @@ namespace Chess.Model
             var pointsToCheck = new List<Move>();
 
             var leftUp = new Point(Position.X + 1, Position.Y - 2);
-            pointsToCheck.Add(new Move {From = Position, To = leftUp, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = leftUp, Hit = true});
 
             var leftDown = new Point(Position.X - 1, Position.Y - 2);
-            pointsToCheck.Add(new Move {From = Position, To = leftDown, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = leftDown, Hit = true});
 
             var upLeft = new Point(Position.X + 2, Position.Y - 1);
-            pointsToCheck.Add(new Move {From = Position, To = upLeft, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = upLeft, Hit = true});
 
             var upRight = new Point(Position.X + 2, Position.Y + 1);
-            pointsToCheck.Add(new Move {From = Position, To = upRight, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = upRight, Hit = true});
 
             var rightUp = new Point(Position.X + 1, Position.Y + 2);
-            pointsToCheck.Add(new Move {From = Position, To = rightUp, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = rightUp, Hit = true});
 
             var rightDown = new Point(Position.X - 1, Position.Y + 2);
-            pointsToCheck.Add(new Move {From = Position, To = rightDown, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = rightDown, Hit = true});
 
             var downLeft = new Point(Position.X - 2, Position.Y - 1);
-            pointsToCheck.Add(new Move {From = Position, To = downLeft, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = downLeft, Hit = true});
 
             var downRight = new Point(Position.X - 2, Position.Y + 1);
-            pointsToCheck.Add(new Move {From = Position, To = downRight, Hit = true });
+            pointsToCheck.Add(new Move {From = Position, To = downRight, Hit = true});
 
             return pointsToCheck;
         }

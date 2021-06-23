@@ -13,8 +13,12 @@ namespace Chess
 
         private static void Main(string[] args)
         {
-            //ResetBoard();
-            //Console.WriteLine(GetBestMove(3, 3333333));
+            //while (true)
+            //{
+            //    ResetBoard();
+            //    Console.WriteLine(GetBestMove(5, 3333333));
+            //}
+
             //var piece = Board.GetPiece(new Point(1, 4));
             //var move = piece.PossibleMoves.FirstOrDefault(x => x.To == new Point(3, 4));
 

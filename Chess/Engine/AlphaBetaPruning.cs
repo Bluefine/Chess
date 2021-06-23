@@ -10,18 +10,15 @@ namespace Chess.Engine
     {
         public Move BestMove;
         public int DepthLimit;
-        public int Nodes;
         public int HashTableHits;
+        public int Nodes;
         public Stopwatch Stopwatch;
-        public Dictionary<ulong, Transposition> Transpositions = new();
         public int TimeLimit;
+        public Dictionary<ulong, Transposition> Transpositions = new();
 
         public double Search(Board board, string color, int depth, double alpha, double beta, bool player)
         {
-            if (Stopwatch.ElapsedMilliseconds >= TimeLimit)
-            {
-                return int.MaxValue;
-            }
+            if (Stopwatch.ElapsedMilliseconds >= TimeLimit) return int.MaxValue;
 
             var entity = Lookup(board.ZobristKey);
             if (entity != null)
@@ -29,31 +26,22 @@ namespace Chess.Engine
                 {
                     HashTableHits++;
                     if (entity.Flag == Transposition.Flags.Exact)
-                    {
                         return entity.Value;
-                    }
-                    else if (entity.Flag == Transposition.Flags.Lower)
-                    {
+                    if (entity.Flag == Transposition.Flags.Lower)
                         alpha = Math.Max(alpha, entity.Value);
-                    }
-                    else if (entity.Flag == Transposition.Flags.Upper)
-                    {
-                        beta = Math.Min(beta, entity.Value);
-                    }
+                    else if (entity.Flag == Transposition.Flags.Upper) beta = Math.Min(beta, entity.Value);
 
-                    if (alpha >= beta)
-                    {
-                        return entity.Value;
-                    }
+                    if (alpha >= beta) return entity.Value;
                 }
 
+            if (board.IsCheck(color))
+                if (board.IsCheckMate(color))
+                {
+                    if (color == "White") return -1000 + -100 + depth;
 
-            if (board.IsCheckMate(color))
-            {
-                if (color == "White") return -1000 + -100 + depth;
+                    return 1000 + 100 - depth;
+                }
 
-                return 1000 + 100 - depth;
-            }
 
             if (depth >= DepthLimit) return GetBoardValue(board); //add depth lvl extra bonus
 
@@ -62,7 +50,7 @@ namespace Chess.Engine
             var scores = new List<double>();
             var moves = new List<Move>();
             var pieces = board.GetPiecesByColor(color);
-            foreach (var piece in pieces)
+            foreach (var piece in pieces.OrderBy(x => x.Position.Distance(new Point(4, 4))).ToList()) //change to 3.5, 3.5
             {
                 piece.UpdateHitMoves(board);
                 piece.FindLegalMoves(board);
@@ -73,9 +61,12 @@ namespace Chess.Engine
                     bN.New();
                     foreach (var item in board.MovesHistory) bN.MovePiece(item, true);
 
-                    bN.MovePieceNewInstance(piece, move, true);
+                    if (piece.NameShort == 'K')
+                        if (move.To.X == 0 && move.To.Y == 2)
+                        {
+                        }
 
-                    //bN.Update(ChangeColor(color));
+                    bN.MovePieceNewInstance(piece, move, true);
                     bN.ZobristKey = ZobristHashing.Hash(bN.GetBoardCharTable());
 
                     moves.Add(move);
@@ -103,27 +94,37 @@ namespace Chess.Engine
                     var bestValue = color == "White" ? scores.Max() : scores.Min();
                     var node = new Transposition(bestValue, depth);
                     if (bestValue <= alpha)
-                    {
                         node.Flag = Transposition.Flags.Upper;
-                    }
                     else if (bestValue >= beta)
-                    {
                         node.Flag = Transposition.Flags.Lower;
-                    }
                     else
-                    {
                         node.Flag = Transposition.Flags.Exact;
-                    }
                     Transpositions.Add(board.ZobristKey, node);
                 }
+            }
+            else //to be tested, higher depth contains more valuable info
+            {
+                var node = Transpositions[board.ZobristKey];
+
+                if (depth > node.Depth)
+                    if (scores.Any())
+                    {
+                        var bestValue = color == "White" ? scores.Max() : scores.Min();
+                        node.Value = bestValue;
+                        node.Depth = depth;
+
+                        if (bestValue <= alpha)
+                            node.Flag = Transposition.Flags.Upper;
+                        else if (bestValue >= beta)
+                            node.Flag = Transposition.Flags.Lower;
+                        else
+                            node.Flag = Transposition.Flags.Exact;
+                    }
             }
 
             if (depth == 1)
             {
-                if (scores.Contains(Int32.MaxValue))
-                {
-                    return 0;
-                }
+                if (scores.Contains(int.MaxValue)) return 0;
 
                 if (color == "White")
                 {
@@ -145,23 +146,15 @@ namespace Chess.Engine
 
             if (color == "White")
             {
-                if (scores.Count > 0)
-                {
-                    return scores.Max();
-                }
+                if (scores.Count > 0) return scores.Max();
 
                 return 0;
             }
 
-            if (scores.Count > 0)
-            {
-                return scores.Min();
-            }
+            if (scores.Count > 0) return scores.Min();
 
             return 0;
         }
-
-
 
         private Transposition Lookup(ulong zobristKey)
         {
@@ -179,6 +172,7 @@ namespace Chess.Engine
                 total += piece.Value;
                 total += PieceSquareTables.GetValue(piece);
             }
+
             return total;
         }
 

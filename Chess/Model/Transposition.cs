@@ -1,23 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Chess.Model
+﻿namespace Chess.Model
 {
     public class Transposition
     {
-        public double Value;
-        public int Depth;
-        public Flags Flag;
-
         public enum Flags
         {
             Exact,
             Lower,
             Upper
         }
+
+        public int Depth;
+        public Flags Flag;
+        public double Value;
 
         public Transposition(double value, int depth, Flags flag)
         {

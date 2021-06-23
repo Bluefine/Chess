@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Chess.Extensions;
 
 namespace Chess.Model
@@ -105,22 +104,15 @@ namespace Chess.Model
             Piece entityOnDestinationClone = null;
             if (entityOnDestination != null)
             {
-                entityOnDestinationClone = new Piece(entityOnDestination); //make new instance because deep copy will override ours
-            }
-            else
-            {
-                //null position so we dont need to bring back the piece
+                entityOnDestinationClone =
+                    new Piece(entityOnDestination); //make new instance because deep copy will override ours
             }
 
             if (move.Castle)
-            {
                 MovePieceCastle(myPiece, move.To, move.CastleQueenSide);
-            }
             else
-            {
                 MovePiece(myPiece, move.To);
-            }
-            
+
 
             var myKing = FindKingLocation(myPiece.Color);
 
@@ -132,10 +124,14 @@ namespace Chess.Model
             {
                 var pieceClone = new Piece(p); //new instance too prevent changes on our original piece
 
-                //if (pieceClone.HitMoves.Any(x => x == move.From)) //if the piece wasn't attacking the position on which piece was then don't check it
+                //if (pieceClone.HitMoves != null)
                 //{
-                    
+                //    if (pieceClone.HitMoves.Any(x => x == move.From)) //if the piece wasn't attacking the position on which piece was then don't check it
+                //    {
+                //        continue;
+                //    }
                 //}
+
 
                 pieceClone.UpdateHitMoves(this); //update legal moves after we made one with our piece
                 if (pieceClone.HitMoves.Any(x => x == myKing.Position))
@@ -147,23 +143,14 @@ namespace Chess.Model
 
             //back piece
             if (move.Castle)
-            {
                 MovePieceCastle(myPiece, move.From, move.CastleQueenSide);
-            }
             else
-            {
                 MovePiece(myPiece, move.From);
-            }
 
             if (entityOnDestinationClone != null)
-            {
                 Pieces[move.To.X, move.To.Y] = entityOnDestinationClone; //bring back old piece if there was any
-            }
 
-            if (check)
-            {
-                return false;
-            }
+            if (check) return false;
 
             return true;
         }
@@ -171,22 +158,6 @@ namespace Chess.Model
         public string ReverseColor(string color)
         {
             return color == "White" ? "Black" : "White";
-        }
-
-        private List<Point> GetAllCheckPositions(string color)
-        {
-            var check = new List<Point>();
-
-            for (var i = 0; i < 8; i++)
-            for (var j = 0; j < 8; j++)
-            {
-                var piece = Pieces[i, j];
-                if (piece != null)
-                    if (piece.Color == color && piece.HitMoves != null)
-                        check.AddRange(piece.HitMoves);
-            }
-
-            return check;
         }
 
         private void MovePiece(Piece piece, Point to, bool final = false)
@@ -214,7 +185,7 @@ namespace Chess.Model
         {
             var piece = Pieces[move.From.X, move.From.Y];
             if (move.Castle)
-                MovePieceCastle(piece, move.To, final);
+                MovePieceCastle(piece, move.To, move.CastleQueenSide, final);
             else
                 MovePiece(piece, move.To, final);
         }
@@ -223,7 +194,7 @@ namespace Chess.Model
         {
             var pieceNew = new Piece(piece);
             if (move.Castle)
-                MovePieceCastle(pieceNew, move.To, final);
+                MovePieceCastle(pieceNew, move.To, move.CastleQueenSide, final);
             else
                 MovePiece(pieceNew, move.To, final);
         }
@@ -312,46 +283,54 @@ namespace Chess.Model
         public void UpdateHit(string color)
         {
             for (var i = 0; i < 8; i++)
+            for (var j = 0; j < 8; j++)
             {
-                for (var j = 0; j < 8; j++)
-                {
-                    var piece = Pieces[i, j];
-                    if (piece != null)
-                        if (piece.Color == color)
-                            piece.UpdateHitMoves(this);
-                }
+                var piece = Pieces[i, j];
+                if (piece != null)
+                    if (piece.Color == color)
+                        piece.UpdateHitMoves(this);
             }
         }
 
         public bool IsCheck(string color)
         {
-            var c = string.Empty;
-            if (color == "Black")
-                c = "White";
-            else
-                c = "Black";
             var king = FindKingLocation(color);
-            var checkPos = GetAllCheckPositions(c);
-            if (checkPos.Any(x => x == king.Position)) return true;
+
+            var pieces =
+                GetPiecesByColor(ReverseColor(color)).OrderByDescending(x => x.Value); //not sure about the order
+            foreach (var piece in pieces)
+            {
+                piece.UpdateHitMoves(this);
+                if (piece.HitMoves.Any(x => x == king.Position)) return true;
+            }
+
             return false;
         }
 
         public bool IsCheckMate(string color)
         {
-            var moves = new List<Move>();
+            //lets check first king if can do any move to prevent check-mate
+            var king = FindKingLocation(color);
+            king.UpdateHitMoves(this);
+            king.FindLegalMoves(this);
+            if (king.LegalMoves != null)
+                if (king.LegalMoves.Count > 0)
+                    return false;
+
             foreach (var piece in GetPiecesByColor(color))
             {
+                if (piece.NameShort == 'K')
+                    //we already checked the king before so no point doing it again
+                    continue;
+
+                piece.UpdateHitMoves(this);
+                piece.FindLegalMoves(this);
                 if (piece.LegalMoves != null)
-                {
-                    moves.AddRange(piece.LegalMoves);
-                }
+                    if (piece.LegalMoves.Count > 0)
+                        return false;
             }
 
-            if (moves.Any()) return false;
-
-            var check = IsCheck(color);
-            if (check) return true;
-            return false;
+            return true;
         }
 
         public List<Piece> GetPiecesByColor(string color)
