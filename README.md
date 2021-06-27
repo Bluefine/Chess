@@ -5,6 +5,7 @@
 - [Introduction](#introduction)
 - [Features](#features)
 - [To-Do](#to-do)
+- [Changelog](#changelog)
 
 ## Introduction
 
