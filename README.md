@@ -32,6 +32,12 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 
 ## Changelog
 
+#### 1.3.0.0 (27.06.2021)
+* Added 'en passant' move
+* Added threefold repetition check
+* Redesigned MovePiece function
+* AlphaBeta Code refactoring
+
 #### 1.2.0.0 (23.06.2021)
 * Move ordering by distance to center of the board
 * Transposition replacing with depther values (need to be tested if working properly)
