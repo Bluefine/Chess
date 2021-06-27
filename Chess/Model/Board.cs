@@ -47,6 +47,37 @@ namespace Chess.Model
             Pieces[7, 4] = new Piece('K', 0, "Black", new Point(7, 4));
         }
 
+        public bool Repetition3()
+        {
+            if (MovesHistory.Count > 9)
+            {
+                var last1 = MovesHistory.ElementAt(MovesHistory.Count - 1);
+                var last2 = MovesHistory.ElementAt(MovesHistory.Count - 2);
+                var last3 = MovesHistory.ElementAt(MovesHistory.Count - 3);
+                var last4 = MovesHistory.ElementAt(MovesHistory.Count - 4);
+                var last5 = MovesHistory.ElementAt(MovesHistory.Count - 5);
+                var last6 = MovesHistory.ElementAt(MovesHistory.Count - 6);
+                var last7 = MovesHistory.ElementAt(MovesHistory.Count - 7);
+                var last8 = MovesHistory.ElementAt(MovesHistory.Count - 8);
+
+                if (last1.From == last5.From && last1.To == last5.To)
+                {
+                    if (last2.From == last6.From && last2.To == last6.To)
+                    {
+                        if (last3.From == last7.From && last3.To == last7.To)
+                        {
+                            if (last4.From == last8.From && last4.To == last8.To)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         public char[,] GetBoardCharTable()
         {
             var table = new char[8, 8];
@@ -111,7 +142,7 @@ namespace Chess.Model
             if (move.Castle)
                 MovePieceCastle(myPiece, move.To, move.CastleQueenSide);
             else
-                MovePiece(myPiece, move.To);
+                MovePieceProcess(myPiece, move, false, false); //for sure false?
 
 
             var myKing = FindKingLocation(myPiece.Color);
@@ -141,11 +172,15 @@ namespace Chess.Model
                 }
             }
 
-            //back piece
+            var m = new Move()
+            {
+                Castle = move.Castle, CastleQueenSide = move.CastleQueenSide, enPassant = move.enPassant, To = move.From, From = move.To, enPassantUndo = true
+            };
+
             if (move.Castle)
-                MovePieceCastle(myPiece, move.From, move.CastleQueenSide);
+                MovePieceCastle(myPiece, m.To, move.CastleQueenSide);
             else
-                MovePiece(myPiece, move.From);
+                MovePieceProcess(myPiece, m, false, false); //for sure false?
 
             if (entityOnDestinationClone != null)
                 Pieces[move.To.X, move.To.Y] = entityOnDestinationClone; //bring back old piece if there was any
@@ -160,43 +195,72 @@ namespace Chess.Model
             return color == "White" ? "Black" : "White";
         }
 
-        private void MovePiece(Piece piece, Point to, bool final = false)
+        private void MovePieceProcess(Piece _piece, Move move, bool final, bool newInstance)
         {
+            var piece = _piece;
+            if (newInstance)
+            {
+                piece = new Piece(_piece);
+            }
+
             if (final)
             {
                 piece.WasMoved = true;
                 piece.MovesDone++;
-                MovesHistory.Add(new Move {From = new Point(piece.Position.X, piece.Position.Y), To = to});
-                if (IsPromotion(piece, to))
+                MovesHistory.Add(new Move { From = new Point(piece.Position.X, piece.Position.Y), To = move.To });
+                if (IsPromotion(piece, move.To))
                 {
                     var value = 90;
-                    if (piece.Color == "Black") value = -90;
-
-                    Promotion(piece, 'Q', value); //undo promo? 
+                    if (piece.Color == "Black")
+                        value = -90;
+                    Promotion(piece, 'Q', value);
                 }
             }
 
             Pieces[piece.Position.X, piece.Position.Y] = null;
-            Pieces[to.X, to.Y] = piece;
-            piece.Position = to;
+            Pieces[move.To.X, move.To.Y] = piece;
+            piece.Position = move.To;      
+
+            if (move.enPassant)
+            {
+                var temp = 1;
+                if (piece.Color == "White")
+                {
+                    temp = -1;
+                }
+                if (move.enPassantUndo)
+                {
+                    string c;
+                    if (piece.Color == "Black")
+                    {
+                        c = "White";
+                    }
+                    else
+                    {
+                        c = "Black";
+                    }
+
+                    var undoPiece = new Piece('P', -piece.Value, c, new Point(move.From.X + temp, move.From.Y));
+                    undoPiece.MovesDone = 1;
+                    undoPiece.WasMoved = true;
+
+                    Pieces[move.From.X + temp, move.From.Y] = undoPiece;
+                }
+                else
+                {             
+                    Pieces[move.To.X + temp, move.To.Y] = null;
+                }
+                
+            }
         }
 
-        public void MovePiece(Move move, bool final = false)
+        public void MovePiece(Move move, bool final, bool newInstance)
         {
             var piece = Pieces[move.From.X, move.From.Y];
             if (move.Castle)
                 MovePieceCastle(piece, move.To, move.CastleQueenSide, final);
             else
-                MovePiece(piece, move.To, final);
-        }
-
-        public void MovePieceNewInstance(Piece piece, Move move, bool final = false)
-        {
-            var pieceNew = new Piece(piece);
-            if (move.Castle)
-                MovePieceCastle(pieceNew, move.To, move.CastleQueenSide, final);
-            else
-                MovePiece(pieceNew, move.To, final);
+                MovePieceProcess(piece, move, final, newInstance);
         }
 
         private void MovePieceCastle(Piece piece, Point to, bool queenSide, bool final = false)
@@ -238,10 +302,8 @@ namespace Chess.Model
                     }
                 }
             }
-
-
-            MovePiece(piece, to, final);
-            MovePiece(rook, rookTo, final);
+            MovePieceProcess(piece, new Move() {To = to}, final, false);
+            MovePieceProcess(rook, new Move() { To = rookTo }, final, false); //newInstance for sure false?
         }
 
         public bool IsPromotion(Piece piece, Point to)

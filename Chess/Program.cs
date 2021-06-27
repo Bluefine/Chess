@@ -13,10 +13,17 @@ namespace Chess
 
         private static void Main(string[] args)
         {
+            //ResetBoard();
             //while (true)
             //{
-            //    ResetBoard();
-            //    Console.WriteLine(GetBestMove(5, 3333333));
+               
+            //    var main = new Main(333333);
+            //    main.Search(Board, Color, 5);
+
+            //    Board.MovePiece(main.AlphaBeta.BestMove, true, false);
+            //    Color = Color == "White" ? "Black" : "White";
+            //    Board.Update(Color);
+            //    DebugBoard(true, Board);
             //}
 
             //var piece = Board.GetPiece(new Point(1, 4));
@@ -55,7 +62,14 @@ namespace Chess
             {
                 ResetBoard();
                 var info = msg.Split(" ");
+                
                 if (info.Length > 2)
+                {
+                    if (info[1] == "fen")
+                    {
+                        return; //add fen 
+                    }
+
                     foreach (var move in info.Skip(3))
                     {
                         var piece = GetPieceFromUser(move[0] + move[1].ToString());
@@ -66,13 +80,14 @@ namespace Chess
                             var dest = piece.LegalMoves.FirstOrDefault(x => x.To == pos);
                             if (dest != null)
                             {
-                                Board.MovePiece(dest, true);
+                                Board.MovePiece(dest, true, false);
                                 Color = Color == "White" ? "Black" : "White";
                                 Board.Update(Color);
                                 //DebugBoard(true, Board);
                             }
                         }
                     }
+                }
             }
             else if (msg.Contains("go"))
             {
@@ -98,6 +113,10 @@ namespace Chess
                     else if (info[1] == "depth")
                     {
                         depth = Convert.ToInt32(info[2]);
+                    }
+                    else if (info[1] == "movetime")
+                    {
+                        time = Convert.ToInt32(info[2]);
                     }
                 }
                 Console.WriteLine(GetBestMove(depth, time));

@@ -20,5 +20,7 @@
         public bool Hit { get; set; } 
         public bool Castle { get; set; }
         public bool CastleQueenSide { get; set; }
+        public bool enPassant { get; set; }
+        public bool enPassantUndo { get; set; }
     }
 }

@@ -132,6 +132,25 @@ namespace Chess.Model
                                     if (board.ValidMove(move)) LegalMoves.Add(move);
                                 }
                         }
+                        else
+                        {
+                            var enemyPiece = board.Pieces[point.X + -temp, point.Y];
+                            if (enemyPiece != null)
+                            {
+                                if (enemyPiece.MovesDone <= 1)
+                                {
+                                    if (enemyPiece.NameShort == 'P')
+                                    {
+                                        if (enemyPiece.Color != Color)
+                                        {
+                                            var move = new Move { Castle = false, From = Position, Hit = true, To = point, enPassant = true};
+                                            if (board.ValidMove(move)) 
+                                                LegalMoves.Add(move);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
 
                     break;

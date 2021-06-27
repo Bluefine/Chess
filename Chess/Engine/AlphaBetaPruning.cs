@@ -34,12 +34,29 @@ namespace Chess.Engine
                     if (alpha >= beta) return entity.Value;
                 }
 
+            if (board.Repetition3())
+            {
+                if (color == "Black")
+                {
+                    return -1000 + depth;
+                }
+                else
+                {
+                    return 1000 - depth;
+                }
+            }
+
             if (board.IsCheck(color))
                 if (board.IsCheckMate(color))
                 {
-                    if (color == "White") return -1000 + -100 + depth;
-
-                    return 1000 + 100 - depth;
+                    if (color == "White")
+                    {
+                        return -1000 + depth;
+                    }
+                    else
+                    {
+                        return 1000 - depth;
+                    }
                 }
 
 
@@ -59,14 +76,10 @@ namespace Chess.Engine
                     Nodes++;
                     var bN = new Board();
                     bN.New();
-                    foreach (var item in board.MovesHistory) bN.MovePiece(item, true);
+                    foreach (var item in board.MovesHistory)
+                        bN.MovePiece(item, true, false);
 
-                    if (piece.NameShort == 'K')
-                        if (move.To.X == 0 && move.To.Y == 2)
-                        {
-                        }
-
-                    bN.MovePieceNewInstance(piece, move, true);
+                    bN.MovePiece(move, true, true);
                     bN.ZobristKey = ZobristHashing.Hash(bN.GetBoardCharTable());
 
                     moves.Add(move);
@@ -151,7 +164,8 @@ namespace Chess.Engine
                 return 0;
             }
 
-            if (scores.Count > 0) return scores.Min();
+            if (scores.Count > 0) 
+                return scores.Min();
 
             return 0;
         }
