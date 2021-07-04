@@ -33,6 +33,13 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 
 ## Changelog
 
+#### 1.4.0.0 (04.07.2021)
+* Added bestscore variable determined from evaluation function
+* Changed player representation from string to bool
+* Best move got own function and a bit of optimization
+* Best move now also check for nodes in depth which was not finished before time
+* Transposition get own function and is temporarily disabled cuz there is bug which i need to find (some problems with check-mate search)
+
 #### 1.3.0.0 (27.06.2021)
 * Added 'en passant' move
 * Added threefold repetition check
