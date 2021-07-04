@@ -16,14 +16,14 @@ namespace Chess
             //ResetBoard();
             //while (true)
             //{
-               
+
             //    var main = new Main(333333);
             //    main.Search(Board, Color, 5);
 
-            //    Board.MovePiece(main.AlphaBeta.BestMove, true, false);
-            //    Color = Color == "White" ? "Black" : "White";
-            //    Board.Update(Color);
-            //    DebugBoard(true, Board);
+            //   // Board.MovePiece(main.AlphaBeta.BestMove, true, false);
+            //    //Color = Color == "White" ? "Black" : "White";
+            //    //Board.Update(Color);
+            //    //DebugBoard(true, Board);
             //}
 
             //var piece = Board.GetPiece(new Point(1, 4));

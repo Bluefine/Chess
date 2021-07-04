@@ -180,7 +180,8 @@ namespace Chess.Model
                 case 'K':
                 {
                     toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
-                    if (!board.IsCheck(Color)) //can't castle under check
+                    var isPieceWhite = Color == "White";
+                    if (!board.IsCheck(isPieceWhite)) //can't castle under check
                         toBeCheck.AddRange(GetKingCastling(board));
 
                     break;

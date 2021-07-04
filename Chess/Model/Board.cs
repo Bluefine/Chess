@@ -113,15 +113,29 @@ namespace Chess.Model
             return Pieces[y, x];
         }
 
-        public Piece FindKingLocation(string color)
+        public Piece FindKingLocation(bool white)
         {
             for (var i = 0; i < 8; i++)
             for (var j = 0; j < 8; j++)
             {
                 var piece = Pieces[i, j];
                 if (piece != null)
-                    if (piece.NameShort == 'K' && piece.Color == color)
-                        return piece;
+                {
+                    if (white)
+                    {
+                        if (piece.NameShort == 'K' && piece.Color == "White")
+                        {
+                            return piece;
+                        }
+                    }
+                    else
+                    {
+                        if (piece.NameShort == 'K' && piece.Color == "Black")
+                        {
+                            return piece;
+                        }
+                    }
+                }
             }
 
             return null;
@@ -130,6 +144,7 @@ namespace Chess.Model
         public bool ValidMove(Move move)
         {
             var myPiece = Pieces[move.From.X, move.From.Y];
+            var isPieceWhite = myPiece.Color == "White";
 
             var entityOnDestination = Pieces[move.To.X, move.To.Y];
             Piece entityOnDestinationClone = null;
@@ -145,13 +160,13 @@ namespace Chess.Model
                 MovePieceProcess(myPiece, move, false, false); //for sure false?
 
 
-            var myKing = FindKingLocation(myPiece.Color);
+            var myKing = FindKingLocation(isPieceWhite);
 
             var check = false;
             //now we need to check if that move wont result in check on our king
 
             //iterate over enemy pieces w/o pawns and knight and king cuz they got static attack position so won't cause check
-            foreach (var p in GetPiecesByColor(ReverseColor(myPiece.Color)))
+            foreach (var p in GetPiecesByColor(!isPieceWhite))
             {
                 var pieceClone = new Piece(p); //new instance too prevent changes on our original piece
 
@@ -190,10 +205,6 @@ namespace Chess.Model
             return true;
         }
 
-        public string ReverseColor(string color)
-        {
-            return color == "White" ? "Black" : "White";
-        }
 
         private void MovePieceProcess(Piece _piece, Move move, bool final, bool newInstance)
         {
@@ -354,12 +365,12 @@ namespace Chess.Model
             }
         }
 
-        public bool IsCheck(string color)
+        public bool IsCheck(bool white)
         {
-            var king = FindKingLocation(color);
+            var king = FindKingLocation(white);
 
             var pieces =
-                GetPiecesByColor(ReverseColor(color)).OrderByDescending(x => x.Value); //not sure about the order
+                GetPiecesByColor(!white).OrderByDescending(x => x.Value); //not sure about the order
             foreach (var piece in pieces)
             {
                 piece.UpdateHitMoves(this);
@@ -369,17 +380,17 @@ namespace Chess.Model
             return false;
         }
 
-        public bool IsCheckMate(string color)
+        public bool IsCheckMate(bool white)
         {
             //lets check first king if can do any move to prevent check-mate
-            var king = FindKingLocation(color);
+            var king = FindKingLocation(white);
             king.UpdateHitMoves(this);
             king.FindLegalMoves(this);
             if (king.LegalMoves != null)
                 if (king.LegalMoves.Count > 0)
                     return false;
 
-            foreach (var piece in GetPiecesByColor(color))
+            foreach (var piece in GetPiecesByColor(white))
             {
                 if (piece.NameShort == 'K')
                     //we already checked the king before so no point doing it again
@@ -395,7 +406,7 @@ namespace Chess.Model
             return true;
         }
 
-        public List<Piece> GetPiecesByColor(string color)
+        public List<Piece> GetPiecesByColor(bool white)
         {
             var pieces = new List<Piece>();
             for (var i = 0; i < 8; i++)
@@ -403,8 +414,23 @@ namespace Chess.Model
             {
                 var piece = Pieces[i, j];
                 if (piece != null)
-                    if (piece.Color == color)
-                        pieces.Add(piece);
+                {
+                    if (white)
+                    {
+                        if (piece.Color == "White")
+                        {
+                            pieces.Add(piece);
+                        }
+                    }
+                    else
+                    {
+                        if (piece.Color == "Black")
+                        {
+                            pieces.Add(piece);
+                        }
+                    }
+
+                }
             }
 
             return pieces;
