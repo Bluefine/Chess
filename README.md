@@ -32,6 +32,11 @@ Chess is not a complete chess program and requires a UCI-compatible graphical us
 * And More...
 
 ## Changelog
+#### 1.5.0.0 (16.07.2021)
+* Rebuilded whole "piece", "board" and "move" model
+* Changed time formula from 10% for move to time/20
+* Improved 3 fold repetition search (still need some tweaks)
+* Changes in "GetBestMove" function
 
 #### 1.4.0.0 (04.07.2021)
 * Added bestscore variable determined from evaluation function
