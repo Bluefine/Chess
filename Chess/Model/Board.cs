@@ -1,55 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using Chess.Extensions;
 
 namespace Chess.Model
 {
     public class Board
     {
-        public List<Move> MovesHistory = new();
-        public Piece[,] Pieces;
+        public Piece[,] GameBoard = new Piece[8, 8];
+        public List<Move> MovesHistory;
         public ulong ZobristKey;
 
         public void New()
         {
-            Pieces = new Piece[8, 8];
+            MovesHistory = new List<Move>();
+            GameBoard = new Piece[8, 8];
             //pawns
-            for (var i = 0; i < 8; i++) Pieces[1, i] = new Piece('P', 10, "White", new Point(1, i));
+            for (var i = 0; i < 8; i++)
+                GameBoard[1, i] = new Piece
+                { IsWhite = true, PieceType = PieceType.Pawn, Value = 10, Position = new Point(1, i) };
 
             //pawns
-            for (var i = 0; i < 8; i++) Pieces[6, i] = new Piece('P', -10, "Black", new Point(6, i));
+            for (var i = 0; i < 8; i++)
+                GameBoard[6, i] = new Piece
+                { IsWhite = false, PieceType = PieceType.Pawn, Value = -10, Position = new Point(6, i) };
 
             //rooks
-            Pieces[0, 0] = new Piece('R', 50, "White", new Point(0, 0));
-            Pieces[0, 7] = new Piece('R', 50, "White", new Point(0, 7));
-            Pieces[7, 0] = new Piece('R', -50, "Black", new Point(7, 0));
-            Pieces[7, 7] = new Piece('R', -50, "Black", new Point(7, 7));
+            GameBoard[0, 0] = new Piece { IsWhite = true, PieceType = PieceType.Rook, Value = 50, Position = new Point(0, 0) };
+            GameBoard[0, 7] = new Piece { IsWhite = true, PieceType = PieceType.Rook, Value = 50, Position = new Point(0, 7) };
+            GameBoard[7, 0] = new Piece { IsWhite = false, PieceType = PieceType.Rook, Value = -50, Position = new Point(7, 0) };
+            GameBoard[7, 7] = new Piece { IsWhite = false, PieceType = PieceType.Rook, Value = -50, Position = new Point(7, 7) };
 
             //knight
-            Pieces[0, 1] = new Piece('N', 30, "White", new Point(0, 1));
-            Pieces[0, 6] = new Piece('N', 30, "White", new Point(0, 6));
-            Pieces[7, 1] = new Piece('N', -30, "Black", new Point(7, 1));
-            Pieces[7, 6] = new Piece('N', -30, "Black", new Point(7, 6));
+            GameBoard[0, 1] = new Piece { IsWhite = true, PieceType = PieceType.Knight, Value = 30, Position = new Point(0, 1) };
+            GameBoard[0, 6] = new Piece { IsWhite = true, PieceType = PieceType.Knight, Value = 30, Position = new Point(0, 6) };
+            GameBoard[7, 1] = new Piece { IsWhite = false, PieceType = PieceType.Knight, Value = -30, Position = new Point(7, 1) };
+            GameBoard[7, 6] = new Piece { IsWhite = false, PieceType = PieceType.Knight, Value = -30, Position = new Point(7, 6) };
 
             //bishop
-            Pieces[0, 2] = new Piece('B', 30, "White", new Point(0, 2));
-            Pieces[0, 5] = new Piece('B', 30, "White", new Point(0, 5));
-            Pieces[7, 2] = new Piece('B', -30, "Black", new Point(7, 2));
-            Pieces[7, 5] = new Piece('B', -30, "Black", new Point(7, 5));
+            GameBoard[0, 2] = new Piece { IsWhite = true, PieceType = PieceType.Bishop, Value = 30, Position = new Point(0, 2) };
+            GameBoard[0, 5] = new Piece { IsWhite = true, PieceType = PieceType.Bishop, Value = 30, Position = new Point(0, 5) };
+            GameBoard[7, 2] = new Piece { IsWhite = false, PieceType = PieceType.Bishop, Value = -30, Position = new Point(7, 2) };
+            GameBoard[7, 5] = new Piece { IsWhite = false, PieceType = PieceType.Bishop, Value = -30, Position = new Point(7, 5) };
 
             //queen
-            Pieces[0, 3] = new Piece('Q', 90, "White", new Point(0, 3));
-            Pieces[7, 3] = new Piece('Q', -90, "Black", new Point(7, 3));
+            GameBoard[0, 3] = new Piece { IsWhite = true, PieceType = PieceType.Queen, Value = 90, Position = new Point(0, 3) };
+            GameBoard[7, 3] = new Piece { IsWhite = false, PieceType = PieceType.Queen, Value = -90, Position = new Point(7, 3) };
 
             //king
-            Pieces[0, 4] = new Piece('K', 0, "White", new Point(0, 4));
-            Pieces[7, 4] = new Piece('K', 0, "Black", new Point(7, 4));
+            GameBoard[0, 4] = new Piece { IsWhite = true, PieceType = PieceType.King, Value = 0, Position = new Point(0, 4) };
+            GameBoard[7, 4] = new Piece { IsWhite = false, PieceType = PieceType.King, Value = 0, Position = new Point(7, 4) };
         }
 
-        public bool Repetition3()
+        public bool IsRepetition(Move bestMove)
         {
-            if (MovesHistory.Count > 9)
+            if (MovesHistory.Count > 7)
             {
                 var last1 = MovesHistory.ElementAt(MovesHistory.Count - 1);
                 var last2 = MovesHistory.ElementAt(MovesHistory.Count - 2);
@@ -58,15 +66,14 @@ namespace Chess.Model
                 var last5 = MovesHistory.ElementAt(MovesHistory.Count - 5);
                 var last6 = MovesHistory.ElementAt(MovesHistory.Count - 6);
                 var last7 = MovesHistory.ElementAt(MovesHistory.Count - 7);
-                var last8 = MovesHistory.ElementAt(MovesHistory.Count - 8);
 
-                if (last1.From == last5.From && last1.To == last5.To)
+                if (bestMove.Piece.Position == last4.Piece.Position)
                 {
-                    if (last2.From == last6.From && last2.To == last6.To)
+                    if (last2.Piece.Position == last6.Piece.Position)
                     {
-                        if (last3.From == last7.From && last3.To == last7.To)
+                        if (last1.Piece.Position == last5.Piece.Position)
                         {
-                            if (last4.From == last8.From && last4.To == last8.To)
+                            if (last3.Piece.Position == last7.Piece.Position)
                             {
                                 return true;
                             }
@@ -84,297 +91,39 @@ namespace Chess.Model
             for (var i = 0; i < 8; i++)
             for (var j = 0; j < 8; j++)
             {
-                var piece = Pieces[i, j];
+                var piece = GameBoard[i, j];
                 if (piece == null)
                 {
                     table[i, j] = '-';
                 }
                 else
                 {
-                    if (piece.Color == "White")
-                        table[i, j] = piece.NameShort;
+                    if (piece.IsWhite)
+                        table[i, j] = Notation.GetChessFigureShort(piece.PieceType);
                     else
-                        table[i, j] = char.ToLower(piece.NameShort);
+                        table[i, j] = char.ToLower(Notation.GetChessFigureShort(piece.PieceType));
                 }
             }
 
             return table;
         }
 
+
         public Piece GetPiece(Point point)
         {
-            return Pieces[point.X, point.Y];
-        }
-
-        public Piece GetPieceByNotation(string pos)
-        {
-            var x = Notation.GetPositionByLetter(pos[0].ToString());
-            var y = Convert.ToInt32(pos[1].ToString()) - 1;
-            return Pieces[y, x];
-        }
-
-        public Piece FindKingLocation(bool white)
-        {
-            for (var i = 0; i < 8; i++)
-            for (var j = 0; j < 8; j++)
-            {
-                var piece = Pieces[i, j];
-                if (piece != null)
-                {
-                    if (white)
-                    {
-                        if (piece.NameShort == 'K' && piece.Color == "White")
-                        {
-                            return piece;
-                        }
-                    }
-                    else
-                    {
-                        if (piece.NameShort == 'K' && piece.Color == "Black")
-                        {
-                            return piece;
-                        }
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public bool ValidMove(Move move)
-        {
-            var myPiece = Pieces[move.From.X, move.From.Y];
-            var isPieceWhite = myPiece.Color == "White";
-
-            var entityOnDestination = Pieces[move.To.X, move.To.Y];
-            Piece entityOnDestinationClone = null;
-            if (entityOnDestination != null)
-            {
-                entityOnDestinationClone =
-                    new Piece(entityOnDestination); //make new instance because deep copy will override ours
-            }
-
-            if (move.Castle)
-                MovePieceCastle(myPiece, move.To, move.CastleQueenSide);
-            else
-                MovePieceProcess(myPiece, move, false, false); //for sure false?
-
-
-            var myKing = FindKingLocation(isPieceWhite);
-
-            var check = false;
-            //now we need to check if that move wont result in check on our king
-
-            //iterate over enemy pieces w/o pawns and knight and king cuz they got static attack position so won't cause check
-            foreach (var p in GetPiecesByColor(!isPieceWhite))
-            {
-                var pieceClone = new Piece(p); //new instance too prevent changes on our original piece
-
-                //if (pieceClone.HitMoves != null)
-                //{
-                //    if (pieceClone.HitMoves.Any(x => x == move.From)) //if the piece wasn't attacking the position on which piece was then don't check it
-                //    {
-                //        continue;
-                //    }
-                //}
-
-
-                pieceClone.UpdateHitMoves(this); //update legal moves after we made one with our piece
-                if (pieceClone.HitMoves.Any(x => x == myKing.Position))
-                {
-                    check = true;
-                    break;
-                }
-            }
-
-            var m = new Move()
-            {
-                Castle = move.Castle, CastleQueenSide = move.CastleQueenSide, enPassant = move.enPassant, To = move.From, From = move.To, enPassantUndo = true
-            };
-
-            if (move.Castle)
-                MovePieceCastle(myPiece, m.To, move.CastleQueenSide);
-            else
-                MovePieceProcess(myPiece, m, false, false); //for sure false?
-
-            if (entityOnDestinationClone != null)
-                Pieces[move.To.X, move.To.Y] = entityOnDestinationClone; //bring back old piece if there was any
-
-            if (check) return false;
-
-            return true;
-        }
-
-
-        private void MovePieceProcess(Piece _piece, Move move, bool final, bool newInstance)
-        {
-            var piece = _piece;
-            if (newInstance)
-            {
-                piece = new Piece(_piece);
-            }
-
-            if (final)
-            {
-                piece.WasMoved = true;
-                piece.MovesDone++;
-                MovesHistory.Add(new Move { From = new Point(piece.Position.X, piece.Position.Y), To = move.To });
-                if (IsPromotion(piece, move.To))
-                {
-                    var value = 90;
-                    if (piece.Color == "Black")
-                        value = -90;
-                    Promotion(piece, 'Q', value);
-                }
-            }
-
-            Pieces[piece.Position.X, piece.Position.Y] = null;
-            Pieces[move.To.X, move.To.Y] = piece;
-            piece.Position = move.To;      
-
-            if (move.enPassant)
-            {
-                var temp = 1;
-                if (piece.Color == "White")
-                {
-                    temp = -1;
-                }
-                if (move.enPassantUndo)
-                {
-                    string c;
-                    if (piece.Color == "Black")
-                    {
-                        c = "White";
-                    }
-                    else
-                    {
-                        c = "Black";
-                    }
-
-                    var undoPiece = new Piece('P', -piece.Value, c, new Point(move.From.X + temp, move.From.Y));
-                    undoPiece.MovesDone = 1;
-                    undoPiece.WasMoved = true;
-
-                    Pieces[move.From.X + temp, move.From.Y] = undoPiece;
-                }
-                else
-                {             
-                    Pieces[move.To.X + temp, move.To.Y] = null;
-                }
-                
-            }
-        }
-
-        public void MovePiece(Move move, bool final, bool newInstance)
-        {
-            var piece = Pieces[move.From.X, move.From.Y];
-            if (move.Castle)
-                MovePieceCastle(piece, move.To, move.CastleQueenSide, final);
-            else
-                MovePieceProcess(piece, move, final, newInstance);
-        }
-
-        private void MovePieceCastle(Piece piece, Point to, bool queenSide, bool final = false)
-        {
-            Piece rook = null;
-            Point rookTo = null;
-            if (to.Y == 6)
-            {
-                rook = GetPiece(new Point(to.X, to.Y + 1));
-                rookTo = new Point(to.X, to.Y - 1);
-            }
-            else if (to.Y == 2)
-            {
-                rook = GetPiece(new Point(to.X, 0));
-                rookTo = new Point(to.X, to.Y + 1);
-            }
-            else if (to.Y == 4) //back
-            {
-                if (queenSide)
-                {
-                    rook = GetPiece(new Point(piece.Position.X, 0));
-                    rookTo = new Point(to.X, 3);
-                    if (rook == null)
-                    {
-                        //back move
-                        rook = GetPiece(new Point(piece.Position.X, 3));
-                        rookTo = new Point(to.X, 0);
-                    }
-                }
-                else
-                {
-                    rook = GetPiece(new Point(piece.Position.X, 7));
-                    rookTo = new Point(to.X, 5);
-                    if (rook == null)
-                    {
-                        //back move
-                        rook = GetPiece(new Point(piece.Position.X, 5));
-                        rookTo = new Point(to.X, 7);
-                    }
-                }
-            }
-            MovePieceProcess(piece, new Move() {To = to}, final, false);
-            MovePieceProcess(rook, new Move() { To = rookTo }, final, false); //newInstance for sure false?
-        }
-
-        public bool IsPromotion(Piece piece, Point to)
-        {
-            if (piece.NameShort == 'P')
-            {
-                if (piece.Color == "White")
-                {
-                    if (to.X == 7) return true;
-                }
-                else
-                {
-                    if (to.X == 0) return true;
-                }
-            }
-
-
-            return false;
-        }
-
-        public void Promotion(Piece piece, char nameShort, int value)
-        {
-            piece.NameShort = nameShort;
-            piece.Value = value;
-        }
-
-        public void Update(string color)
-        {
-            for (var i = 0; i < 8; i++)
-            for (var j = 0; j < 8; j++)
-            {
-                var piece = Pieces[i, j];
-                if (piece != null)
-                    if (piece.Color == color)
-                        piece.FindLegalMoves(this);
-            }
-        }
-
-        public void UpdateHit(string color)
-        {
-            for (var i = 0; i < 8; i++)
-            for (var j = 0; j < 8; j++)
-            {
-                var piece = Pieces[i, j];
-                if (piece != null)
-                    if (piece.Color == color)
-                        piece.UpdateHitMoves(this);
-            }
+            return GameBoard[point.X, point.Y];
         }
 
         public bool IsCheck(bool white)
         {
-            var king = FindKingLocation(white);
+            var king = FindKingPiece(white);
 
-            var pieces =
-                GetPiecesByColor(!white).OrderByDescending(x => x.Value); //not sure about the order
+            var pieces = GetPiecesByColor(!white);
             foreach (var piece in pieces)
             {
-                piece.UpdateHitMoves(this);
-                if (piece.HitMoves.Any(x => x == king.Position)) return true;
+                piece.UpdateInCheckPositions(this);
+                if (piece.InCheckPositions.Contains(king.Position))
+                    return true;
             }
 
             return false;
@@ -383,8 +132,7 @@ namespace Chess.Model
         public bool IsCheckMate(bool white)
         {
             //lets check first king if can do any move to prevent check-mate
-            var king = FindKingLocation(white);
-            king.UpdateHitMoves(this);
+            var king = FindKingPiece(white);
             king.FindLegalMoves(this);
             if (king.LegalMoves != null)
                 if (king.LegalMoves.Count > 0)
@@ -392,11 +140,9 @@ namespace Chess.Model
 
             foreach (var piece in GetPiecesByColor(white))
             {
-                if (piece.NameShort == 'K')
-                    //we already checked the king before so no point doing it again
-                    continue;
+                if (piece.PieceType == PieceType.King)
+                    continue; //we already checked the king before so no point doing it again
 
-                piece.UpdateHitMoves(this);
                 piece.FindLegalMoves(this);
                 if (piece.LegalMoves != null)
                     if (piece.LegalMoves.Count > 0)
@@ -406,34 +152,46 @@ namespace Chess.Model
             return true;
         }
 
-        public List<Piece> GetPiecesByColor(bool white)
+
+        public List<Piece> GetPiecesByColor(bool v)
         {
             var pieces = new List<Piece>();
-            for (var i = 0; i < 8; i++)
+            
+            for (var i = 0; i < 8; i++) //maybe binary search instead of that crap? or cast it to list then use linq?
             for (var j = 0; j < 8; j++)
             {
-                var piece = Pieces[i, j];
-                if (piece != null)
+                var p = GameBoard[i, j];
+                if (p != null)
                 {
-                    if (white)
+                    if (p.IsWhite == v)
                     {
-                        if (piece.Color == "White")
-                        {
-                            pieces.Add(piece);
-                        }
+                        pieces.Add(p);
                     }
-                    else
-                    {
-                        if (piece.Color == "Black")
-                        {
-                            pieces.Add(piece);
-                        }
-                    }
-
                 }
             }
 
             return pieces;
+        }
+
+        public Piece FindKingPiece(bool isWhite)
+        {
+            for (var i = 0; i < 8; i++) //maybe binary search instead of that crap? or cast it to list then use linq?
+            for (var j = 0; j < 8; j++)
+            {
+                var p = GameBoard[i, j];
+                if (p != null)
+                {
+                    if (p.PieceType == PieceType.King)
+                    {
+                        if (p.IsWhite == isWhite)
+                        {
+                            return p;
+                        }
+                    }
+                }
+            }
+
+            return null; //should never happen
         }
 
         public List<Piece> GetAllPieces()
@@ -442,11 +200,199 @@ namespace Chess.Model
             for (var i = 0; i < 8; i++)
             for (var j = 0; j < 8; j++)
             {
-                var piece = Pieces[i, j];
+                var piece = GameBoard[i, j];
                 if (piece != null) pieces.Add(piece);
             }
 
             return pieces;
+        }
+        public bool IsPromotion(Piece piece)
+        {
+            if (piece.PieceType == PieceType.Pawn)
+            {
+                if (piece.IsWhite)
+                {
+                    if (piece.Position.X == 7) 
+                        return true;
+                }
+                else
+                {
+                    if (piece.Position.X == 0) 
+                        return true;
+                }
+            }
+
+
+            return false;
+        }
+
+        public void MakeMove(Move move)
+        {
+            var lastMove = new Move(move);
+            if (move.Piece != null)
+            {
+                lastMove.Piece = new Piece(move.Piece);
+            }
+            if (move.Piece2 != null)
+            {
+                lastMove.Piece2 = new Piece(move.Piece2);
+            }
+            
+            switch (move.MoveType)
+            {
+                case MoveType.Normal:
+                    {
+                        lastMove.CapturedPiece = GameBoard[move.Destination.X, move.Destination.Y];
+                        GameBoard[move.Destination.X, move.Destination.Y] = move.Piece;
+                        GameBoard[move.Piece.Position.X, move.Piece.Position.Y] = null;
+                        move.Piece.Position = move.Destination;
+                        move.Piece.MovesCount++;
+                        if (IsPromotion(move.Piece))
+                        {
+                            move.Piece.PieceType = PieceType.Queen;
+
+                            var value = -90;
+                            if (move.Piece.IsWhite)
+                                value = 90;
+                            move.Piece.Value = value;
+                        }
+                        break;
+                    }
+                case MoveType.Castle:
+                    {
+                        var kingDestination = move.CastleSide ? new Point(move.Piece.Position.X, 6) : new Point(move.Piece.Position.X, 2);
+                        var rookDestination = move.CastleSide ? new Point(move.Piece2.Position.X, 5) : new Point(move.Piece2.Position.X, 3);
+
+                        //move king
+                        GameBoard[kingDestination.X, kingDestination.Y] = move.Piece;
+                        GameBoard[move.Piece.Position.X, move.Piece.Position.Y] = null;
+                        move.Piece.Position = kingDestination;
+                        move.Piece.MovesCount++;
+
+                        //move rook
+                        GameBoard[rookDestination.X, rookDestination.Y] = move.Piece2;
+                        GameBoard[move.Piece2.Position.X, move.Piece2.Position.Y] = null;
+                        move.Piece2.Position = rookDestination;
+                        move.Piece2.MovesCount++;
+
+                        break;
+                    }
+                case MoveType.EnPassant:
+                    {
+                        //make move on board
+                        lastMove.CapturedPiece = GameBoard[move.Hit.X, move.Hit.Y];
+                        GameBoard[move.Destination.X, move.Destination.Y] = move.Piece;
+                        GameBoard[move.Piece.Position.X, move.Piece.Position.Y] = null;
+                        GameBoard[move.Hit.X, move.Hit.Y] = null;
+                        move.Piece.Position = move.Destination;
+                        move.Piece.MovesCount++;
+                        break;
+                    }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            MovesHistory.Add(lastMove);
+        }
+
+        public void UndoLastMove(Move move)
+        {
+            var lastMove = MovesHistory.Last();
+
+            switch (lastMove.MoveType)
+            {
+                case MoveType.Normal:
+                {
+                    GameBoard[lastMove.Destination.X, lastMove.Destination.Y] = lastMove.CapturedPiece;
+                    GameBoard[lastMove.Piece.Position.X, lastMove.Piece.Position.Y] = lastMove.Piece;
+                    move.Piece.Position = lastMove.Piece.Position;
+                    move.Piece.MovesCount--;
+                    if (lastMove.Piece.PieceType == PieceType.Pawn)
+                    {
+                        if (lastMove.Piece.Position.X == 6 && lastMove.Piece.IsWhite)
+                        {
+                            move.Piece.PieceType = PieceType.Pawn;
+                            move.Piece.Value = 10;
+                        }
+
+                        if (lastMove.Piece.Position.X == 1 && !lastMove.Piece.IsWhite)
+                        {
+                            move.Piece.PieceType = PieceType.Pawn;
+                            move.Piece.Value = -10;
+                        }
+                    }
+                    break;
+                }
+                case MoveType.Castle:
+                {
+                    var kingDestination = lastMove.CastleSide ? new Point(lastMove.Piece.Position.X, 6) : new Point(lastMove.Piece.Position.X, 2);
+                    var rookDestination = lastMove.CastleSide ? new Point(lastMove.Piece2.Position.X, 5) : new Point(lastMove.Piece2.Position.X, 3);
+
+                    GameBoard[lastMove.Piece.Position.X, lastMove.Piece.Position.Y] = lastMove.Piece;
+                    GameBoard[kingDestination.X, kingDestination.Y] = null;
+                    GameBoard[lastMove.Piece2.Position.X, lastMove.Piece2.Position.Y] = lastMove.Piece2;
+                    GameBoard[rookDestination.X, rookDestination.Y] = null;
+
+                    move.Piece.Position = lastMove.Piece.Position;
+                    move.Piece2.Position = lastMove.Piece2.Position;
+                    move.Piece.MovesCount--;
+                    move.Piece2.MovesCount--;
+                    break;
+                }
+                case MoveType.EnPassant:
+                {
+                    GameBoard[lastMove.Destination.X, lastMove.Destination.Y] = null;
+                    GameBoard[lastMove.Piece.Position.X, lastMove.Piece.Position.Y] = lastMove.Piece;
+                    GameBoard[lastMove.Hit.X, lastMove.Hit.Y] = lastMove.CapturedPiece;
+                    move.Piece.Position = lastMove.Piece.Position;
+                    move.Piece.MovesCount--;
+                    break;
+                }
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            MovesHistory.RemoveAt(MovesHistory.Count-1);
+        }
+
+        public bool IsMoveLegal(Move move)
+        {
+            MakeMove(move);
+            var isSafe = IsCheck(move.Piece.IsWhite);
+            UndoLastMove(move);
+            return !isSafe;
+        }
+
+        public Piece GetPieceByNotation(string pos)
+        {
+            var x = Notation.GetPositionByLetter(pos[0].ToString());
+            var y = Convert.ToInt32(pos[1].ToString()) - 1;
+            return GameBoard[y, x];
+        }
+
+        public void UpdateBoard()
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    var p = GameBoard[i, j];
+                    if (p != null)
+                    {
+                        p.UpdateInCheckPositions(this);
+                    }
+                }
+            }
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    var p = GameBoard[i, j];
+                    if (p != null)
+                    {
+                        p.FindLegalMoves(this);
+                    }
+                }
+            }
         }
     }
 }

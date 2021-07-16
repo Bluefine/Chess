@@ -9,32 +9,19 @@ namespace Chess
     internal class Program
     {
         public static Board Board;
-        public static string Color;
+        public static bool Turn = true;
 
         private static void Main(string[] args)
         {
-            //ResetBoard();
+            //var bbb = new Board();
+            //bbb.New();
+            //bbb.UpdateBoard();
+
             //while (true)
             //{
-
             //    var main = new Main(333333);
-            //    main.Search(Board, Color, 5);
-
-            //   // Board.MovePiece(main.AlphaBeta.BestMove, true, false);
-            //    //Color = Color == "White" ? "Black" : "White";
-            //    //Board.Update(Color);
-            //    //DebugBoard(true, Board);
+            //    main.Search(bbb, Turn, 10);
             //}
-
-            //var piece = Board.GetPiece(new Point(1, 4));
-            //var move = piece.PossibleMoves.FirstOrDefault(x => x.To == new Point(3, 4));
-
-            //Board.MovePiece(move, true);
-            //Color = "Black";
-            //Board.Update("Black");
-
-            //Console.WriteLine(GetBestMove(10, 20000));
-
             while (true)
             {
                 var input = Console.ReadLine();
@@ -75,14 +62,14 @@ namespace Chess
                         var piece = GetPieceFromUser(move[0] + move[1].ToString());
                         var pos = GetDestination(move[2] + move[3].ToString());
 
-                        if (piece != null && piece.Color == Color)
+                        if (piece != null && piece.IsWhite == Turn)
                         {
-                            var dest = piece.LegalMoves.FirstOrDefault(x => x.To == pos);
+                            var dest = piece.LegalMoves.FirstOrDefault(x => x.Destination == pos);
                             if (dest != null)
                             {
-                                Board.MovePiece(dest, true, false);
-                                Color = Color == "White" ? "Black" : "White";
-                                Board.Update(Color);
+                                Board.MakeMove(dest);
+                                Board.UpdateBoard();
+                                Turn = !Turn;
                                 //DebugBoard(true, Board);
                             }
                         }
@@ -101,13 +88,13 @@ namespace Chess
                         var whiteTime = info[2];
                         var blackTime = info[4]; //add later the info about time inc
 
-                        if (Color == "White")
+                        if (Turn)
                         {
-                            time = (int)(Convert.ToInt32(whiteTime) * 0.1);
+                            time = (Convert.ToInt32(whiteTime) / 20);
                         }
                         else
                         {
-                            time = (int)(Convert.ToInt32(blackTime) * 0.1);
+                            time = (Convert.ToInt32(blackTime) / 20);
                         }
                     }
                     else if (info[1] == "depth")
@@ -125,7 +112,7 @@ namespace Chess
 
         public static void DebugBoard(bool flip, Board board)
         {
-            var gameBoardClone = (Piece[,])board.Pieces.Clone();
+            var gameBoardClone = (Piece[,])board.GameBoard.Clone();
             if (flip)
             {
                 gameBoardClone = FlipArray(gameBoardClone);
@@ -138,7 +125,7 @@ namespace Chess
                 {
                     if (gameBoardClone[i, j] != null)
                     {
-                        Debug.Write(gameBoardClone[i, j].NameShort + " ");
+                        Debug.Write(gameBoardClone[i, j].PieceType.ToString()[0] + " ");
                     }
                     else
                     {
@@ -169,31 +156,21 @@ namespace Chess
         {
             Board = new Board();
             Board.New();
-            Color = "White";
+            Turn = true;
             var st = new Stopwatch();
             st.Start();
-            Board.UpdateHit((Color));
-            Board.UpdateHit((ReverseColor(Color)));
-            Board.Update(Color);
-            Board.Update(ReverseColor(Color));
-
-
+            Board.UpdateBoard();
             st.Stop();
             Debug.WriteLine(st.ElapsedMilliseconds);
         }
 
-        public static string ReverseColor(string color)
-        {
-            return color == "White" ? "Black" : "White";
-        }
-
         public static string GetBestMove(int depth, int time)
         {
-            //lets say we will use every time 10% of our time to move, probably i isn;t best tactic but maybe it will work well
-
+            DebugBoard(true, Board);
+            Board.UpdateBoard();
             var main = new Main(time);
-            main.Search(Board, Color, depth);
-            return "bestmove " + main.AlphaBeta.BestMove.From.ToNotation() + main.AlphaBeta.BestMove.To.ToNotation();
+            main.Search(Board, Turn, depth);
+            return "bestmove " + main.AlphaBeta.BestMove.Piece.Position.ToNotation() + main.AlphaBeta.BestMove.Destination.ToNotation();
         }
 
         public static Piece GetPieceFromUser(string from)

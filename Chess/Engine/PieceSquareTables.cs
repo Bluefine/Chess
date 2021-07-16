@@ -1,4 +1,5 @@
-﻿using Chess.Model;
+﻿using Chess.Extensions;
+using Chess.Model;
 
 namespace Chess.Engine
 {
@@ -116,20 +117,20 @@ namespace Chess.Engine
 
         public static double GetValue(Piece piece)
         {
-            return piece.NameShort switch
+            return piece.PieceType switch
             {
-                'P' => piece.Color == "Black"
+                PieceType.Pawn => !piece.IsWhite
                     ? -PawnWhitePositionValues[piece.Position.X, piece.Position.Y]
                     : PawnBlackPositionValues[piece.Position.X, piece.Position.Y],
-                'R' => piece.Color == "Black"
+                PieceType.Rook => !piece.IsWhite
                     ? -RookWhitePositionValues[piece.Position.X, piece.Position.Y]
                     : RookBlackPositionValues[piece.Position.X, piece.Position.Y],
-                'N' => KnightPositionValues[piece.Position.X, piece.Position.Y],
-                'B' => piece.Color == "Black"
+                PieceType.Knight => KnightPositionValues[piece.Position.X, piece.Position.Y],
+                PieceType.Bishop => !piece.IsWhite
                     ? -BishopWhitePositionValues[piece.Position.X, piece.Position.Y]
                     : BishopBlackPositionValues[piece.Position.X, piece.Position.Y],
-                'Q' => QueenPositionValues[piece.Position.X, piece.Position.Y],
-                'K' => piece.Color == "Black"
+                PieceType.Queen => QueenPositionValues[piece.Position.X, piece.Position.Y],
+                PieceType.King => !piece.IsWhite
                     ? -KingWhitePositionValues[piece.Position.X, piece.Position.Y]
                     : KingBlackPositionValues[piece.Position.X, piece.Position.Y],
                 _ => 0

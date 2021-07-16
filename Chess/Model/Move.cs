@@ -1,26 +1,45 @@
-﻿namespace Chess.Model
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Chess.Extensions;
+
+namespace Chess.Model
 {
     public class Move
     {
-        public Move(Move move)
+        public Move(MoveType moveType)
         {
-            From = move.From;
-            To = move.To;
-            Hit = move.Hit;
-            Castle = move.Castle;
-            CastleQueenSide = move.CastleQueenSide;
+            MoveType = moveType;
         }
 
-        public Move()
+        public Move(Move move2)
         {
+            MoveType = move2.MoveType;
+            Piece = move2.Piece;
+            Piece2 = move2.Piece2;
+            CastleSide = move2.CastleSide;
+            Destination = move2.Destination;
+            Hit = move2.Hit;
         }
 
-        public Point From { get; set; }
-        public Point To { get; set; }
-        public bool Hit { get; set; } 
-        public bool Castle { get; set; }
-        public bool CastleQueenSide { get; set; }
-        public bool enPassant { get; set; }
-        public bool enPassantUndo { get; set; }
+        public Move(Move move2, Piece pieceClone, Piece piece2Clone)
+        {
+            MoveType = move2.MoveType;
+            Piece = pieceClone;
+            Piece2 = piece2Clone;
+            CastleSide = move2.CastleSide;
+            Destination = move2.Destination;
+            Hit = move2.Hit;
+        }
+
+        public MoveType MoveType { get; set; }
+        public Piece Piece { get; set; }
+        public Piece Piece2 { get; set; }
+        public bool CastleSide { get; set; }
+        public Point Destination { get; set; }
+        public Point Hit { get; set; }
+        public Piece CapturedPiece { get; set; }
     }
 }

@@ -1,5 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Chess.Extensions;
 
 namespace Chess.Model
 {
@@ -7,378 +11,357 @@ namespace Chess.Model
     {
         public Piece(Piece piece)
         {
-            NameShort = piece.NameShort;
-            Value = piece.Value;
-            Color = piece.Color;
+            PieceType = piece.PieceType;
+            IsWhite = piece.IsWhite;
             Position = piece.Position;
-            WasMoved = piece.WasMoved;
-            MovesDone = piece.MovesDone;
+            MovesCount = piece.MovesCount;
+            Value = piece.Value;
+            InCheckPositions = piece.InCheckPositions;
             LegalMoves = piece.LegalMoves;
-            HitMoves = piece.HitMoves;
-        }
-
-        public Piece(char nameShort, int value, string color, Point position)
-        {
-            NameShort = nameShort;
-            Value = value;
-            Color = color;
-            Position = position;
         }
 
         public Piece()
         {
         }
 
-        public char NameShort { get; set; }
-        public int Value { get; set; }
-        public string Color { get; set; }
-        public Point Position { get; set; }
-        public bool WasMoved { get; set; }
-        public int MovesDone { get; set; }
+
+        public List<Point> InCheckPositions { get; set; }
         public List<Move> LegalMoves { get; set; }
-        public List<Point> HitMoves { get; set; }
+        public PieceType PieceType { get; set; }
+        public bool IsWhite { get; set; }
+        public Point Position { get; set; }
+        public int MovesCount { get; set; }
+        public double Value { get; set; }
 
-        public void UpdateHitMoves(Board board)
+        public void UpdateInCheckPositions(Board board3)
         {
-            var toBeCheck = new List<Move>();
-            HitMoves = new List<Point>();
-            switch (NameShort)
-            {
-                case 'P':
-                {
-                    HitMoves = GetPawnHitPositions();
-                    break;
-                }
+            InCheckPositions = new List<Point>();
 
-                case 'N':
+            switch (PieceType)
+            {
+                case PieceType.Pawn:
                 {
-                    toBeCheck = GetKnightAllMoves().Where(p => !p.To.IsPointOutsideBoard()).ToList();
+                    InCheckPositions = GetPawnHit();
                     break;
                 }
-                case 'R':
+                case PieceType.King:
                 {
-                    toBeCheck = GetMovesInLine(board);
+                    InCheckPositions = GetKingHit();
                     break;
                 }
-                case 'B':
+                case PieceType.Queen:
                 {
-                    toBeCheck = GetMovesInDiagonal(board);
+                    InCheckPositions.AddRange(GetMovesDiagonal(board3));
+                    InCheckPositions.AddRange(GetMovesAxis(board3));
                     break;
                 }
-                case 'Q':
+                case PieceType.Bishop:
                 {
-                    toBeCheck.AddRange(GetMovesInLine(board)); //combine to make it faster
-                    toBeCheck.AddRange(GetMovesInDiagonal(board)); //combine to make it faster
+                    InCheckPositions = GetMovesDiagonal(board3);
                     break;
                 }
-                case 'K':
+                case PieceType.Knight:
                 {
-                    toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
+                    InCheckPositions = GetKnightHit();
+                    break;
+                }
+                case PieceType.Rook:
+                {
+                    InCheckPositions = GetMovesAxis(board3);
                     break;
                 }
             }
-
-            foreach (var move in toBeCheck) HitMoves.Add(new Point(move.To.X, move.To.Y));
         }
 
-        public void FindLegalMoves(Board board)
+        public void FindLegalMoves(Board board3)
         {
             LegalMoves = new List<Move>();
-            var toBeCheck = new List<Move>();
-            switch (NameShort)
+            switch (PieceType)
             {
-                case 'P':
+                case PieceType.Pawn:
                 {
-                    var moves = GetPawnHitPositions();
-                    var temp = -1;
-                    if (Color == "White")
-                        temp = 1;
-
-                    var temp2 = -2;
-                    if (Color == "White")
-                        temp2 = 2;
-
-                    var up1 = new Point(Position.X + temp, Position.Y);
-
-                    if (board.Pieces[up1.X, up1.Y] == null) //position of course need to be empty for pawn
+                    FindPawnLegalMoves(board3);
+                    break;
+                }
+                case PieceType.King:
+                {
+                    CheckPoints(GetKingHit(), board3);
+                    if (!board3.IsCheck(IsWhite)) //cant castle under check
                     {
-                        var m = new Move {Castle = false, From = Position, Hit = false, To = up1};
+                        FindKingCastles(board3);
+                    }
+                    break;
+                }
+                case PieceType.Queen:
+                {
+                    CheckPoints(GetMovesDiagonal(board3), board3);
+                    CheckPoints(GetMovesAxis(board3), board3);
+                    break;
+                }
+                case PieceType.Bishop:
+                {
+                    CheckPoints(GetMovesDiagonal(board3), board3);
+                    break;
+                }
+                case PieceType.Knight:
+                {
+                    CheckPoints(GetKnightHit(), board3);
+                    break;
+                }
+                case PieceType.Rook:
+                {
+                    CheckPoints(GetMovesAxis(board3), board3);
+                    break;
+                }
+            }
+        }
 
-                        if (board.ValidMove(m)) LegalMoves.Add(m);
+        private void FindKingCastles(Board board3)
+        {
+            var castles = new List<Move>();
 
-                        if (!WasMoved) //2 places can only be done if the piece wasn't moved
+            var side = 7;
+            if (IsWhite) 
+                side = 0;
+
+            var f = board3.GameBoard[side, 5];
+            var g = board3.GameBoard[side, 6];
+            var h = board3.GameBoard[side, 7];
+
+            if (f == null && g == null && h != null)
+                if (MovesCount == 0 && h.MovesCount == 0 && h.PieceType == PieceType.Rook)
+                {
+                    var castle = new Move(MoveType.Castle) {Piece = this, CastleSide = true, Piece2 = h, Destination = new Point(Position.X,6)};
+                    castles.Add(castle);
+                }
+
+            var d = board3.GameBoard[side, 3];
+            var c = board3.GameBoard[side, 2];
+            var b = board3.GameBoard[side, 1];
+            var a = board3.GameBoard[side, 0];
+
+            if (d == null && c == null && b == null && a != null)
+                if (MovesCount == 0 && a.MovesCount == 0 && a.PieceType == PieceType.Rook)
+                {
+                    var castle = new Move(MoveType.Castle) { Piece = this, CastleSide = false, Piece2 = a, Destination = new Point(Position.X, 2) };
+                    castles.Add(castle);
+                }
+
+            foreach (var castle in castles)
+            {
+                if (board3.IsMoveLegal(castle))
+                {
+                    LegalMoves.Add(castle);
+                }
+            }
+        }
+
+        private void CheckPoints(List<Point> points, Board board3)
+        {
+            foreach (var pos in points)
+            {
+                var p = board3.GetPiece(pos);
+                if (p != null)
+                    if (p.IsWhite == IsWhite || p.PieceType == PieceType.King)
+                        continue;
+
+                var move = new Move(MoveType.Normal) { Piece = this, Destination = pos };
+
+                if (board3.IsMoveLegal(move))
+                {
+                    LegalMoves.Add(move);
+                }
+            }
+        }
+
+        private void FindPawnLegalMoves(Board board3)
+        {
+            var moves = GetPawnHit();
+            var temp = -1;
+            if (IsWhite)
+                temp = 1;
+
+            var temp2 = -2;
+            if (IsWhite)
+                temp2 = 2;
+
+            var up1 = new Point(Position.X + temp, Position.Y);
+            if (board3.GameBoard[up1.X, up1.Y] == null) //position of course need to be empty for pawn
+            {
+                var move = new Move(MoveType.Normal) { Piece = this, Destination = up1 };
+
+                if (board3.IsMoveLegal(move))
+                {
+                    LegalMoves.Add(move);
+                }
+
+                if (MovesCount == 0) //2 places can only be done if the piece wasn't moved
+                {
+                    var up2 = new Point(Position.X + temp2, Position.Y);
+
+                    if (board3.GameBoard[up2.X, up2.Y] == null)
+                    {
+                        var move2 = new Move(MoveType.Normal) { Piece = this, Destination = up2 };
+
+                        if (board3.IsMoveLegal(move2))
                         {
-                            var up2 = new Point(Position.X + temp2, Position.Y);
-
-                            if (board.Pieces[up2.X, up2.Y] == null) //position of course need to be empty for pawn
-                            {
-                                var m2 = new Move {Castle = false, From = Position, Hit = false, To = up2};
-                                if (board.ValidMove(m2)) LegalMoves.Add(m2);
-                            }
+                            LegalMoves.Add(move2);
                         }
                     }
+                }
+            }
 
-                    //todo add el-passant
-
-                    foreach (var point in moves)
+            foreach (var point in moves)
+            {
+                var p = board3.GetPiece(point);
+                if (p != null) //we need piece to perform diagonal move
+                {
+                    if (p.PieceType != PieceType.King && p.IsWhite != IsWhite)
                     {
-                        var p = board.Pieces[point.X, point.Y];
-                        if (p != null) //we need piece to perform diagonal move
+                        var move = new Move(MoveType.Normal) { Piece = this, Destination = point };
+
+                        if (board3.IsMoveLegal(move))
                         {
-                            if (p.Color != Color)
-                                if (p.NameShort != 'K')
-                                {
-                                    var move = new Move {Castle = false, From = Position, Hit = true, To = point};
-                                    if (board.ValidMove(move)) LegalMoves.Add(move);
-                                }
+                            LegalMoves.Add(move);
                         }
-                        else
+                    }
+                }
+                else
+                {
+                    var pos = new Point(point.X + -temp, point.Y);
+                    var pieceUnder = board3.GetPiece(pos);
+                    if (pieceUnder != null)
+                    {
+                        if (pieceUnder.PieceType == PieceType.Pawn)
                         {
-                            var enemyPiece = board.Pieces[point.X + -temp, point.Y];
-                            if (enemyPiece != null)
+                            if (pieceUnder.MovesCount == 1)
                             {
-                                if (enemyPiece.MovesDone <= 1)
+                                if (pieceUnder.IsWhite != IsWhite)
                                 {
-                                    if (enemyPiece.NameShort == 'P')
+                                    var lastMove = board3.MovesHistory.Last();
+                                    if (lastMove.Destination == pieceUnder.Position)
                                     {
-                                        if (enemyPiece.Color != Color)
+                                        if (pieceUnder.IsWhite)
                                         {
-                                            var move = new Move { Castle = false, From = Position, Hit = true, To = point, enPassant = true};
-                                            if (board.ValidMove(move)) 
-                                                LegalMoves.Add(move);
+                                            if (pieceUnder.Position.X == 3)
+                                            {
+                                                var move = new Move(MoveType.EnPassant) { Piece = this, Destination = point, Hit = pos };
+
+                                                if (board3.IsMoveLegal(move))
+                                                {
+                                                    LegalMoves.Add(move);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (pieceUnder.Position.X == 4)
+                                            {
+                                                var move = new Move(MoveType.EnPassant) { Piece = this, Destination = point, Hit = pos };
+
+                                                if (board3.IsMoveLegal(move))
+                                                {
+                                                    LegalMoves.Add(move);
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-
-                    break;
-                }
-
-                case 'N':
-                {
-                    toBeCheck = GetKnightAllMoves().Where(p => !p.To.IsPointOutsideBoard()).ToList();
-                    break;
-                }
-                case 'R':
-                {
-                    toBeCheck = GetMovesInLine(board);
-                    break;
-                }
-                case 'B':
-                {
-                    toBeCheck = GetMovesInDiagonal(board);
-                    break;
-                }
-                case 'Q':
-                {
-                    toBeCheck.AddRange(GetMovesInLine(board)); //combine to make it faster
-                    toBeCheck.AddRange(GetMovesInDiagonal(board)); //combine to make it faster
-                    break;
-                }
-                case 'K':
-                {
-                    toBeCheck = GetKingAllMoves().Where(point => !point.To.IsPointOutsideBoard()).ToList();
-                    var isPieceWhite = Color == "White";
-                    if (!board.IsCheck(isPieceWhite)) //can't castle under check
-                        toBeCheck.AddRange(GetKingCastling(board));
-
-                    break;
                 }
             }
-
-            if (NameShort != 'P')
-                foreach (var move in toBeCheck)
-                {
-                    //HitMoves.Add(new Point(move.To.X, move.To.Y));
-
-                    var p = board.Pieces[move.To.X, move.To.Y];
-                    if (p != null) //hit
-                        if (p.Color == Color || p.NameShort == 'K')
-                            continue;
-
-                    if (board.ValidMove(move)) LegalMoves.Add(move);
-                }
         }
 
-        public List<Move> GetMovesInLine(Board board)
+        private List<Point> GetMovesAxis(Board board) //i guess it can be combined the axis and diagonal
         {
-            var moves = new List<Move>();
+            var points = new List<Point>();
 
             for (var i = 0; i < 4; i++)
-            for (var j = 1; j < 8; j++)
-            {
-                var p = new Point();
-                switch (i)
+                for (var j = 1; j < 8; j++)
                 {
-                    case 0:
-                        p = new Point(Position.X + j, Position.Y);
+                    var p = new Point();
+                    switch (i)
+                    {
+                        case 0:
+                            p = new Point(Position.X + j, Position.Y);
+                            break;
+                        case 1:
+                            p = new Point(Position.X - j, Position.Y);
+                            break;
+                        case 2:
+                            p = new Point(Position.X, Position.Y - j);
+                            break;
+                        case 3:
+                            p = new Point(Position.X, Position.Y + j);
+                            break;
+                    }
+
+                    if (p.IsPointOutsideBoard()) break;
+
+                    var piece = board.GetPiece(p);
+                    if (piece == null)
+                    {
+                        points.Add(p);
+                    }
+                    else
+                    {
+                        points.Add(p);
                         break;
-                    case 1:
-                        p = new Point(Position.X - j, Position.Y);
-                        break;
-                    case 2:
-                        p = new Point(Position.X, Position.Y - j);
-                        break;
-                    case 3:
-                        p = new Point(Position.X, Position.Y + j);
-                        break;
+                    }
                 }
 
-                if (p.IsPointOutsideBoard()) break;
-
-                var piece = board.GetPiece(p);
-                if (piece == null)
-                {
-                    var move = new Move {From = Position, To = p, Hit = true};
-                    moves.Add(move);
-                }
-                else
-                {
-                    var move = new Move {From = Position, To = p, Hit = true};
-                    moves.Add(move);
-                    break;
-                }
-            }
-
-            return moves;
+            return points;
         }
 
-        public List<Move> GetMovesInDiagonal(Board board) //combine it with the one before
+        private List<Point> GetMovesDiagonal(Board board)
         {
-            var moves = new List<Move>();
+            var points = new List<Point>();
 
             for (var i = 0; i < 4; i++)
-            for (var j = 1; j < 8; j++)
-            {
-                var p = new Point();
-                switch (i)
+                for (var j = 1; j < 8; j++)
                 {
-                    case 0:
-                        p = new Point(Position.X + j, Position.Y - j);
+                    var p = new Point();
+                    switch (i)
+                    {
+                        case 0:
+                            p = new Point(Position.X + j, Position.Y - j);
+                            break;
+                        case 1:
+                            p = new Point(Position.X - j, Position.Y - j);
+                            break;
+                        case 2:
+                            p = new Point(Position.X + j, Position.Y + j);
+                            break;
+                        case 3:
+                            p = new Point(Position.X - j, Position.Y + j);
+                            break;
+                    }
+
+                    if (p.IsPointOutsideBoard()) break;
+
+                    var piece = board.GetPiece(p);
+                    if (piece == null)
+                    {
+                        points.Add(p);
+                    }
+                    else
+                    {
+                        points.Add(p);
                         break;
-                    case 1:
-                        p = new Point(Position.X - j, Position.Y - j);
-                        break;
-                    case 2:
-                        p = new Point(Position.X + j, Position.Y + j);
-                        break;
-                    case 3:
-                        p = new Point(Position.X - j, Position.Y + j);
-                        break;
+                    }
                 }
 
-                if (p.IsPointOutsideBoard()) break;
-
-                var piece = board.GetPiece(p);
-                if (piece == null)
-                {
-                    var move = new Move {From = Position, To = p, Hit = true};
-                    moves.Add(move);
-                }
-                else
-                {
-                    var move = new Move {From = Position, To = p, Hit = true};
-                    moves.Add(move);
-                    break;
-                }
-            }
-
-            return moves;
+            return points;
         }
 
-        private IEnumerable<Move> GetKingAllMoves() //can be done better?
-        {
-            var pointsAroundKing = new List<Move>();
-
-            var p1 = new Point(Position.X + 1, Position.Y - 1); //leftUp
-            var p2 = new Point(Position.X + 1, Position.Y); //up
-            var p3 = new Point(Position.X + 1, Position.Y + 1); //rightUp
-            var p4 = new Point(Position.X, Position.Y + 1); //right
-            var p5 = new Point(Position.X - 1, Position.Y + 1); //rightDown
-            var p6 = new Point(Position.X - 1, Position.Y); //down
-            var p7 = new Point(Position.X - 1, Position.Y - 1); //downLeft
-            var p8 = new Point(Position.X, Position.Y - 1); //Left
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p1});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p2});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p3});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p4});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p5});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p6});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p7});
-            pointsAroundKing.Add(new Move {From = Position, Hit = true, To = p8});
-
-            return pointsAroundKing;
-        }
-
-        private List<Move> GetKingCastling(Board board)
-        {
-            var moves = new List<Move>();
-
-            var side = 0;
-            if (Color == "Black") side = 7;
-
-            //kingside
-            var f = board.Pieces[side, 5];
-            var g = board.Pieces[side, 6];
-            var h = board.Pieces[side, 7];
-
-            if (f == null && g == null && h != null)
-                if (!WasMoved && !h.WasMoved)
-                    moves.Add(new Move {Castle = true, From = Position, To = new Point(side, 6)});
-
-            //queenside
-            var d = board.Pieces[side, 3];
-            var c = board.Pieces[side, 2];
-            var b = board.Pieces[side, 1];
-            var a = board.Pieces[side, 0];
-
-            if (d == null && c == null && b == null && a != null)
-                if (!WasMoved && !a.WasMoved)
-                    moves.Add(new Move
-                        {Castle = true, From = Position, To = new Point(side, 2), CastleQueenSide = true});
-
-            return moves;
-        }
-
-        private IEnumerable<Move> GetKnightAllMoves()
-        {
-            var pointsToCheck = new List<Move>();
-
-            var leftUp = new Point(Position.X + 1, Position.Y - 2);
-            pointsToCheck.Add(new Move {From = Position, To = leftUp, Hit = true});
-
-            var leftDown = new Point(Position.X - 1, Position.Y - 2);
-            pointsToCheck.Add(new Move {From = Position, To = leftDown, Hit = true});
-
-            var upLeft = new Point(Position.X + 2, Position.Y - 1);
-            pointsToCheck.Add(new Move {From = Position, To = upLeft, Hit = true});
-
-            var upRight = new Point(Position.X + 2, Position.Y + 1);
-            pointsToCheck.Add(new Move {From = Position, To = upRight, Hit = true});
-
-            var rightUp = new Point(Position.X + 1, Position.Y + 2);
-            pointsToCheck.Add(new Move {From = Position, To = rightUp, Hit = true});
-
-            var rightDown = new Point(Position.X - 1, Position.Y + 2);
-            pointsToCheck.Add(new Move {From = Position, To = rightDown, Hit = true});
-
-            var downLeft = new Point(Position.X - 2, Position.Y - 1);
-            pointsToCheck.Add(new Move {From = Position, To = downLeft, Hit = true});
-
-            var downRight = new Point(Position.X - 2, Position.Y + 1);
-            pointsToCheck.Add(new Move {From = Position, To = downRight, Hit = true});
-
-            return pointsToCheck;
-        }
-
-        private List<Point> GetPawnHitPositions()
+        private List<Point> GetPawnHit()
         {
             var moves = new List<Point>();
 
             var temp = -1;
-            if (Color == "White")
+            if (IsWhite)
                 temp = 1;
 
             var pLeft = new Point(Position.X + temp, Position.Y - 1);
@@ -391,5 +374,40 @@ namespace Chess.Model
 
             return moves;
         }
+
+        private List<Point> GetKingHit()
+        {
+            var points = new List<Point>
+            {
+                new (Position.X + 1, Position.Y - 1),
+                new (Position.X + 1, Position.Y),
+                new (Position.X + 1, Position.Y + 1),
+                new (Position.X, Position.Y + 1),
+                new (Position.X - 1, Position.Y + 1),
+                new (Position.X - 1, Position.Y),
+                new (Position.X - 1, Position.Y - 1),
+                new (Position.X, Position.Y - 1)
+            };
+
+            return points.Where(point => !point.IsPointOutsideBoard()).ToList();
+        }
+
+        private List<Point> GetKnightHit()
+        {
+            var points = new List<Point>
+            {
+                new(Position.X + 1, Position.Y - 2),
+                new(Position.X - 1, Position.Y - 2),
+                new(Position.X + 2, Position.Y - 1),
+                new(Position.X + 2, Position.Y + 1),
+                new(Position.X + 1, Position.Y + 2),
+                new(Position.X - 1, Position.Y + 2),
+                new(Position.X - 2, Position.Y - 1),
+                new(Position.X - 2, Position.Y + 1)
+            };
+
+            return points.Where(point => !point.IsPointOutsideBoard()).ToList();
+        }
+
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace Chess.Extensions
+﻿using System;
+
+namespace Chess.Extensions
 {
     public class Notation
     {
@@ -31,6 +33,20 @@
                 6 => "g",
                 7 => "h",
                 _ => ""
+            };
+        }
+
+        public static char GetChessFigureShort(PieceType pieceType)
+        {
+            return pieceType switch
+            {
+                PieceType.Pawn => 'P',
+                PieceType.King => 'K',
+                PieceType.Queen => 'Q',
+                PieceType.Bishop => 'B',
+                PieceType.Knight => 'N',
+                PieceType.Rook => 'R',
+                _ => throw new ArgumentOutOfRangeException(nameof(pieceType), pieceType, null)
             };
         }
     }
